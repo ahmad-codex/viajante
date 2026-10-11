@@ -45,6 +45,7 @@ from viajante.explore import (
     search_explore,
     validate_explore_window,
 )
+from viajante.feedback import run_feedback
 from viajante.flight_filters import (
     OfferFilters,
     parse_depart_window,
@@ -179,6 +180,12 @@ Examples:
 BENCH_EXAMPLES = """\
 Examples:
   viajante bench
+"""
+
+FEEDBACK_EXAMPLES = """\
+Examples:
+  viajante feedback
+  viajante feedback "The Booking total differs from the card" --no-browser
 """
 
 HOTELS_EXAMPLES = """\
@@ -1949,6 +1956,25 @@ def _build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=BENCH_EXAMPLES,
     )
+    feedback = sub.add_parser(
+        "feedback",
+        help="Open a prefilled GitHub issue (viajante sends nothing itself)",
+        description=(
+            "Opens a new GitHub issue with this viajante version, Python, and platform "
+            "filled in. The issue exists only once you submit it on GitHub."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=FEEDBACK_EXAMPLES,
+    )
+    feedback.add_argument(
+        "message",
+        nargs="?",
+        default="",
+        help="Optional text for the issue body (max 1000 characters)",
+    )
+    feedback.add_argument(
+        "--no-browser", action="store_true", help="Print the link without opening a browser"
+    )
     add_history_parsers(sub)
     return parser
 
@@ -1994,6 +2020,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return run_recheck_cli(args)
     if args.cmd == "bench":
         return run_bench()
+    if args.cmd == "feedback":
+        return run_feedback(args.message, open_browser=not args.no_browser)
     if args.cmd == "history":
         return run_history(args)
     if args.cmd == "watch":

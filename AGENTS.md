@@ -49,6 +49,7 @@ add new prose labels to any result.
 - Chromium session: `src/viajante/browser.py`
 - `--save` or the state directory: `src/viajante/storage.py`
 - Flags: `src/viajante/cli.py`; printed tables and exit codes: `src/viajante/cli_report.py`
+- `viajante feedback` (a prefilled GitHub issue link; no network call): `src/viajante/feedback.py`
 - Stdio / local HTTP MCP tools: `src/viajante/mcp_server.py` (descriptions, client-type overrides), `src/viajante/mcp_handlers.py` (parameters and defaults; the client schema is derived from these signatures)
 - MCP result envelope: `src/viajante/envelope.py`
 - MCP input-error JSON body: `src/viajante/mcp_errors.py`
@@ -84,7 +85,7 @@ add new prose labels to any result.
 
 - CLI (`viajante <cmd> --help`): `flights` (`--split-tickets`), `dates`, `flex`,
   `explore`, `airports`, `hotels`, `hotel-rooms`, `trip`, `hidden-city`,
-  `awards`, `points`, `recheck-offer`, `history`, `watch`, `bench`.
+  `awards`, `points`, `recheck-offer`, `history`, `watch`, `bench`, `feedback`.
 - MCP (stdio, or opt-in loopback Streamable HTTP): `search_flights`,
   `search_dates`, `search_flex`, `search_trip`, `search_explore`,
   `lookup_airports`, `search_hotels`, `search_hotel_rooms`, `get_hotel_details`,

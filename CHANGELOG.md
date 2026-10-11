@@ -9,6 +9,12 @@ history up to commit 6ee0fb7.
 
 ## [Unreleased]
 
+### Added
+
+- `viajante feedback` opens a prefilled GitHub issue with the Viajante version,
+  Python version, and platform. Viajante sends nothing itself; `--no-browser`
+  prints the link only.
+
 ## [1.5.0] - 2026-10-08
 
 ### Changed

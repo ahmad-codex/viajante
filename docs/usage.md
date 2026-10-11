@@ -678,6 +678,22 @@ when requested, using a temporary file followed by a rename. The opt-in price
 history (`price-history.jsonl`) and saved watches (`price-watches.json`) live
 there too.
 
+## Sending feedback
+
+`viajante feedback` opens a new GitHub issue in your browser. It fills in the
+Viajante version, Python version, and platform, and it adds a hidden reminder to
+remove private travel details. Text after the command becomes the title (first
+line, up to 80 characters) and the start of the body. The message can be up to
+1000 characters.
+
+```bash
+viajante feedback "The Booking total differs from the card"
+viajante feedback --no-browser
+```
+
+`--no-browser` prints the link only. Viajante sends nothing itself. The issue
+exists only after you submit it on GitHub.
+
 ## Python library
 
 Use `get_flights` for a route string, or construct queries explicitly:
