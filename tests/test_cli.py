@@ -45,6 +45,7 @@ from viajante.storage import write_json_atomic
 FUTURE_DATE = date.today() + timedelta(days=30)
 PAST_DATE = date.today() - timedelta(days=1)
 ROUTE = f"JFK-LHR:{FUTURE_DATE.isoformat()}"
+RT_ROUTE = f"LAX-NRT:{FUTURE_DATE.isoformat()}:{(FUTURE_DATE + timedelta(days=3)).isoformat()}"
 
 QUERY = FlightQuery("JFK", "LHR", FUTURE_DATE, max_stops=1)
 SEARCHED_AT = datetime(2026, 8, 10, 9, 0, 0)
@@ -973,7 +974,7 @@ class ReportRenderingTests(unittest.TestCase):
                         "flights",
                         "--trip",
                         "round-trip",
-                        "LAX-NRT:2026-10-09:2026-10-12",
+                        RT_ROUTE,
                         "--fetch",
                         "sweep",
                     ]
@@ -984,9 +985,7 @@ class ReportRenderingTests(unittest.TestCase):
     def test_trip_rt_reaches_search_as_one_package(self) -> None:
         with patch("viajante.cli.search_flights", return_value=_report()) as search:
             with patch("viajante.cli._print_report"):
-                code = main(
-                    ["flights", "--trip", "rt", "LAX-NRT:2026-10-09:2026-10-12", "--fetch", "sweep"]
-                )
+                code = main(["flights", "--trip", "rt", RT_ROUTE, "--fetch", "sweep"])
         self.assertEqual(code, 0)
         trips = search.call_args.args[0]
         self.assertEqual(len(trips), 1)
@@ -995,23 +994,23 @@ class ReportRenderingTests(unittest.TestCase):
     def test_trip_one_way_keeps_rt_sugar(self) -> None:
         with patch("viajante.cli.search_flights", return_value=_report()) as search:
             with patch("viajante.cli._print_report"):
-                code = main(["flights", "--trip", "one-way", "LAX-NRT:2026-10-09:2026-10-12"])
+                code = main(["flights", "--trip", "one-way", RT_ROUTE])
         self.assertEqual(code, 0)
         self.assertEqual(len(search.call_args.args[0]), 2)
 
     def test_rt_sugar_builds_return_leg(self) -> None:
         with patch("viajante.cli.search_flights", return_value=_report()) as search:
             with patch("viajante.cli._print_report"):
-                code = main(["flights", "LAX-NRT:2026-10-09:2026-10-12"])
+                code = main(["flights", RT_ROUTE])
         self.assertEqual(code, 0)
         queries = search.call_args.args[0]
         self.assertEqual(len(queries), 2)
         self.assertEqual(queries[0].origin, "LAX")
         self.assertEqual(queries[0].destination, "NRT")
-        self.assertEqual(queries[0].departure_date, date(2026, 10, 9))
+        self.assertEqual(queries[0].departure_date, FUTURE_DATE)
         self.assertEqual(queries[1].origin, "NRT")
         self.assertEqual(queries[1].destination, "LAX")
-        self.assertEqual(queries[1].departure_date, date(2026, 10, 12))
+        self.assertEqual(queries[1].departure_date, FUTURE_DATE + timedelta(days=3))
 
     def test_best_pair_line_uses_sort_key(self) -> None:
         outbound = FlightQuery("LAX", "NRT", date(2026, 10, 9), max_stops=1)
