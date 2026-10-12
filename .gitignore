@@ -34,3 +34,18 @@ test-results/
 dist/
 .freshctx/
 build/
+
+# Local agent skills and landing design notes. .claude/skills/verify stays tracked.
+.claude/skills/animate/
+.claude/skills/animation-performance/
+.claude/skills/animation-vocabulary/
+.claude/skills/apple-design/
+.claude/skills/awesome-ai-motion/
+.claude/skills/break-ui/
+.claude/skills/emil-design-eng/
+.claude/skills/find-animation-opportunities/
+.claude/skills/improve-animations/
+.claude/skills/review-animations/
+.claude/skills/tufte/
+.impeccable/
+/DESIGN.md
