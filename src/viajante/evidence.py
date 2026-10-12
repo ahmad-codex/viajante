@@ -36,6 +36,8 @@ _MONEY_KEYS = frozenset(
         "rate_per_person_night",
     }
 )
+# Recommendation score maps reuse "price" as a key for a 0-1 score, not an amount.
+_SCORE_KEYS = frozenset({"breakdown", "weights"})
 _ISO_4217 = frozenset(_COUNTRY_CASH_CURRENCY.values()) | {"EUR", "USD"}
 _GLYPH_CURRENCY = {"€": "EUR", "£": "GBP", "₹": "INR", "₩": "KRW"}
 _URL = re.compile(r"https?://[^\s)\]>\"'`]+")
@@ -160,7 +162,8 @@ class _Owned:
                 value = node["currency"]
                 currency = value.upper() if isinstance(value, str) else None
             for child_key, value in node.items():
-                self._walk(value, str(child_key), currency)
+                if child_key not in _SCORE_KEYS:
+                    self._walk(value, str(child_key), currency)
         elif isinstance(node, (list, tuple)):
             for value in node:
                 self._walk(value, key, currency)
@@ -180,8 +183,10 @@ class _Owned:
     def owns_amount(self, value: float, currency: Optional[str]) -> bool:
         # ponytail: rounding tolerance is max(1, 0.5%); a caller rounding a JPY fare to
         # the nearest thousand is flagged. Upgrade: per-currency minor-unit tolerance.
+        # A zero (an unnamed baggage buffer, an unchanged price) owns only zero.
         return any(
-            (currency is None or currency == code) and abs(value - owned) <= max(1.0, owned * 0.005)
+            (currency is None or currency == code)
+            and abs(value - owned) <= (max(1.0, owned * 0.005) if owned else 0.0)
             for owned, code in self.amounts
         )
 

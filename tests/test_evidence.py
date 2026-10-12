@@ -58,6 +58,28 @@ class VerifyAnswerTests(unittest.TestCase):
         )
         self.assertFalse(result["ok"])
 
+    def test_a_zero_amount_owns_only_zero(self) -> None:
+        offer = {"airline": "Icelandair", "price": 291.0, "baggage_buffer": 0}
+        evidence.record({**FLIGHTS, "queries": [{"status": "ok", "offers": [offer]}]})
+        self.assertEqual(
+            evidence.verify_answer("from 1 USD")["unowned"],
+            [{"kind": "amount", "text": "1 USD"}],
+        )
+        self.assertTrue(evidence.verify_answer("bag buffer 0 USD")["ok"])
+
+    def test_recommendation_scores_are_not_amounts(self) -> None:
+        pick = {
+            "score": 88.6,
+            "breakdown": {"price": 0.227, "duration": 0.0, "stops": 0.0},
+            "offer": {"price": 291.0},
+        }
+        recommendation = {"weights": {"price": 0.5}, "shortlist": [pick]}
+        evidence.record({**FLIGHTS, "queries": [{"recommendation": recommendation}]})
+        self.assertEqual(
+            evidence.verify_answer("1 USD, then 291 USD")["unowned"],
+            [{"kind": "amount", "text": "1 USD"}],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,6 +15,12 @@ history up to commit 6ee0fb7.
   Python version, and platform. Viajante sends nothing itself; `--no-browser`
   prints the link only.
 
+### Fixed
+
+- `verify_answer` no longer passes an invented amount near zero. A zero money field
+  (an unnamed baggage buffer) owned any claim up to 1, and recommendation score maps
+  (`breakdown`, `weights`) were read as amounts in the quote currency.
+
 ## [1.5.0] - 2026-10-08
 
 ### Changed
