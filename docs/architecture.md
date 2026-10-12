@@ -238,7 +238,7 @@ Only failures that can succeed on a second try are retried:
   scheduling pending work on a block; unsent work reports `request_sent: false`
   and `attempts: 0`.
 - A direct HTTP 429 resets the TLS session and writes a shared cooldown file in the
-  state dir (2 min, doubling to 30 min). While it runs, every Google search in
+  state dir (2 min, or the named Retry-After up to 30 min). While it runs, every Google search in
   any viajante process on the machine fails instantly with `Not sent.` and
   `rate_limited: true`. A named `Retry-After` takes precedence over the guessed
   delay; a proxied response does not pause the machine's direct searches.

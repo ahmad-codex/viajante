@@ -52,11 +52,11 @@ class CooldownStateTests(_StateDir):
         self.assertIsNotNone(rate_limit_status(now=T0 + 1))
         self.assertIsNone(rate_limit_status(now=first["until"] + 1))
 
-    def test_repeat_429_soon_after_a_cooldown_doubles_up_to_the_cap(self) -> None:
+    def test_repeat_429_soon_after_a_cooldown_keeps_the_base_window(self) -> None:
         state = note_rate_limited(now=T0)
         for _ in range(8):
             state = note_rate_limited(now=state["until"] + 1)
-        self.assertEqual(state["cooldown_s"], RATE_LIMIT_MAX_COOLDOWN_SECONDS)
+            self.assertEqual(state["cooldown_s"], RATE_LIMIT_COOLDOWN_SECONDS)
 
     def test_an_absurd_retry_after_is_capped_not_recorded_whole(self) -> None:
         state = note_rate_limited(retry_after=10**12, now=T0)

@@ -58,6 +58,12 @@ CONSENT_CLICK_TIMEOUT_MS = 5_000
 CONSENT_SETTLE_MS = 1_500
 
 
+# A results page that has finished loading but shows neither results nor an empty state is
+# markup drift. Wait this long for the markers before calling it drift; a page still loading
+# keeps the full PAGE_TIMEOUT_MS.
+READY_PROBE_MS = 20_000
+
+
 # Tiny unknown shells are a block, not a results-page parse.
 _SHORT_SHELL_CHARS = 200
 
@@ -120,12 +126,12 @@ _ARIA_LAYOVER = re.compile(
 _IMPACT_SLICE = re.compile(r"([A-Z]{3})-([A-Z]{3})-([A-Z0-9]{2,3})-(\d{1,4}[A-Z]?)-(\d{8})")
 
 
+# Reject only. AGENTS.md asks for the most privacy-preserving consent choice, so an
+# Accept control is never clicked. The explore browser reuses this helper.
 CONSENT_SELECTORS = [
-    'text="Accept all"',
     'text="Reject all"',
-    'text="Aceptar todo"',
     'text="Rechazar todo"',
-    'button:has-text("Accept")',
+    'button:has-text("Reject")',
 ]
 
 
@@ -569,11 +575,28 @@ class GoogleFlightsSource:
                 self._dismiss_consent(page)
             if looks_blocked("", page.url):
                 raise GoogleFlightsBlocked(f"Google Flights blocked the browser at {page.url}")
-            page.locator(READY_SELECTOR).first.wait_for(timeout=PAGE_TIMEOUT_MS)
+            self._await_results(page)
             return page.evaluate("() => document.querySelector('[role=\"main\"]')?.innerHTML || ''")
         finally:
             with contextlib.suppress(Exception):
                 page.close()
+
+    @staticmethod
+    def _await_results(page) -> None:
+        ready = page.locator(READY_SELECTOR).first
+        try:
+            ready.wait_for(timeout=READY_PROBE_MS)
+            return
+        except Exception as exc:
+            from playwright.sync_api import TimeoutError as PlaywrightTimeout
+
+            if not isinstance(exc, PlaywrightTimeout):
+                raise
+        if page.evaluate("() => document.readyState") == "complete":
+            raise GoogleFlightsMarkupError(
+                "Results page finished loading with no results grid and no empty state."
+            )
+        ready.wait_for(timeout=PAGE_TIMEOUT_MS)
 
     @staticmethod
     def _dismiss_consent(page) -> None:

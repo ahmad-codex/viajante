@@ -296,7 +296,7 @@ add new prose labels to any result.
 
 - A direct Google 429, or a data-less RPC status 13, writes
   `google-rate-limit.json` in the state directory. The cooldown is a guess: 2 minutes,
-  doubling per repeat up to 30 minutes, or a named `Retry-After`. While it runs,
+  or a named `Retry-After` up to 30 minutes. While it runs,
   every Google flight or hotel search in any process fails `blocked` with
   `rate_limited: true` and sends nothing. A proxied 429 writes no cooldown.
 - A raw status 13 does not prove an IP block or a cause. Diagnostics carry the

@@ -20,8 +20,8 @@ from viajante.storage import default_state_dir, write_json_atomic
 
 GOOGLE_RATE_LIMIT_FILE = "google-rate-limit.json"
 SKIPLAGGED_RATE_LIMIT_FILE = "skiplagged-rate-limit.json"
-# ponytail: neither provider publishes a quota. The cooldown is a guess: 2 min, doubling per
-# repeat limit up to 30 min, unless Retry-After names one. Upgrade: learn it from recoveries.
+# ponytail: neither provider publishes a quota. The cooldown is a guess: 2 min, or the
+# Retry-After the provider names (at most 30 min). Upgrade: learn it from recoveries.
 RATE_LIMIT_COOLDOWN_SECONDS = 120.0
 RATE_LIMIT_MAX_COOLDOWN_SECONDS = 1800.0
 NOT_SENT = "Not sent. "
@@ -117,8 +117,6 @@ def note_rate_limited(
     cooldown = RATE_LIMIT_COOLDOWN_SECONDS
     if retry_after is not None and retry_after > 0:
         cooldown = min(retry_after, RATE_LIMIT_MAX_COOLDOWN_SECONDS)
-    elif previous is not None and current < previous["until"] + previous.get("cooldown_s", 0):
-        cooldown = min(RATE_LIMIT_MAX_COOLDOWN_SECONDS, previous["cooldown_s"] * 2)
     state = {
         "at": current,
         "until": current + cooldown,
