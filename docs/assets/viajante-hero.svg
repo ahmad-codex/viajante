@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="hero-title hero-desc" font-family="Figtree, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <title id="hero-title">viajante</title>
+  <desc id="hero-desc">Search flights and hotels with AI. Runs on your machine, no API keys. Google Flights, Google Hotels, Booking.com, and Skiplagged when you opt in.</desc>
+  <rect width="960" height="360" rx="28" fill="#F4F1EA"/>
+  <g transform="translate(64 56) scale(1.5)">
+    <rect width="48" height="48" rx="13" fill="#E3EEFF"/>
+    <path d="M13 35C13 20 23 13 35 13" fill="none" stroke="#1D1D1F" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="13" cy="35" r="3.5" fill="#1D1D1F"/>
+    <circle cx="35" cy="13" r="3.5" fill="#0066CC"/>
+  </g>
+  <text x="152" y="111" font-size="44" font-weight="600" fill="#1D1D1F" letter-spacing="-0.8">viajante</text>
+  <text x="64" y="200" font-size="46" font-weight="600" fill="#1D1D1F" letter-spacing="-1">Search flights &amp; hotels</text>
+  <text x="64" y="252" font-size="46" font-weight="600" fill="#1D1D1F" letter-spacing="-1">with AI.</text>
+  <text x="64" y="286" font-size="19" fill="#6E6E73">Runs on your machine, no API keys. Every result is evidence, not advice.</text>
+  <g font-size="16" font-weight="600" text-anchor="middle">
+    <rect x="64" y="304" width="158" height="36" rx="18" fill="#D9F3E4"/>
+    <text x="143" y="328" fill="#14583A">Google Flights</text>
+    <rect x="234" y="304" width="149" height="36" rx="18" fill="#E6E0F6"/>
+    <text x="308.5" y="328" fill="#3E2C6E">Google Hotels</text>
+    <rect x="395" y="304" width="131" height="36" rx="18" fill="#F9DCCB"/>
+    <text x="460.5" y="328" fill="#5C2E1A">Booking.com</text>
+    <rect x="538" y="304" width="203" height="36" rx="18" fill="#D9E8FF"/>
+    <text x="639.5" y="328" fill="#0B3D91">Skiplagged · opt-in</text>
+  </g>
+  <path d="M672 214C672 120 740 88 872 88" fill="none" stroke="#1D1D1F" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="672" cy="214" r="9" fill="#1D1D1F"/>
+  <circle cx="872" cy="88" r="9" fill="#0066CC"/>
+  <text x="672" y="252" font-size="16" font-weight="600" text-anchor="middle" fill="#1D1D1F">JFK</text>
+  <text x="872" y="62" font-size="16" font-weight="600" text-anchor="middle" fill="#0066CC">LHR</text>
+</svg>

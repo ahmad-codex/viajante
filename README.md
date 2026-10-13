@@ -1,20 +1,29 @@
-# Viajante
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/felipebasurto/viajante/main/docs/assets/viajante-hero.svg" alt="Viajante: flight and hotel search for your terminal, Python, and AI assistants. Runs on your machine, no API keys." width="100%">
+</h1>
 
-Flight and hotel search for your terminal, Python, and AI assistants.
+<div align="center">
+
+**Flight and hotel search for your terminal, Python, and AI assistants.**
 Runs on your machine, no API keys.
 
 [![PyPI](https://img.shields.io/pypi/v/viajante.svg)](https://pypi.org/project/viajante/)
+[![Python](https://img.shields.io/pypi/pyversions/viajante.svg)](https://pypi.org/project/viajante/)
 [![npm](https://img.shields.io/npm/v/@viajante/mcp.svg)](https://www.npmjs.com/package/@viajante/mcp)
 [![Tests](https://github.com/felipebasurto/viajante/actions/workflows/test.yml/badge.svg)](https://github.com/felipebasurto/viajante/actions/workflows/test.yml)
-
-It reads Google Flights, Google Hotels, and Booking.com directly, and Skiplagged
-when you opt in. It returns prices, itinerary details, and links. It reports what the provider returned
-and says so when something is unknown; it never invents a fare.
 
 [Website](https://viajante.felipebasurto.com) ·
 [Usage guide](https://github.com/felipebasurto/viajante/blob/main/docs/usage.md) ·
 [Architecture](https://github.com/felipebasurto/viajante/blob/main/docs/architecture.md) ·
 [Changelog](https://github.com/felipebasurto/viajante/blob/main/CHANGELOG.md)
+
+<img src="https://raw.githubusercontent.com/felipebasurto/viajante/main/docs/assets/viajante-features.svg" alt="Four points: runs on your machine with no API keys; returns evidence, not advice; only provider_empty means nothing was found; three ways in, a terminal command, a Python call, or an AI assistant over MCP." width="100%">
+
+</div>
+
+It reads Google Flights, Google Hotels, and Booking.com directly, and Skiplagged
+when you opt in. It returns prices, itinerary details, and links. It reports what the provider returned
+and says so when something is unknown; it never invents a fare.
 
 ## Quick start
 

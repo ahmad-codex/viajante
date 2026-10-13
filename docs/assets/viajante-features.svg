@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="200" viewBox="0 0 960 200" role="img" aria-labelledby="features-title features-desc" font-family="Figtree, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <title id="features-title">What viajante does</title>
+  <desc id="features-desc">No API keys, and it runs on your machine. Returns evidence, not advice. Only provider_empty means nothing was found. Three ways in: a terminal command, a Python call, or an AI assistant over MCP.</desc>
+  <g>
+    <rect x="0" y="0" width="228" height="200" rx="22" fill="#D9F3E4"/>
+    <text x="20" y="36" font-size="14" font-weight="600" letter-spacing="1" fill="#14583A">01</text>
+    <text x="20" y="78" font-size="20" font-weight="600" fill="#14583A">No API keys</text>
+    <text x="20" y="112" font-size="15" fill="#14583A">Runs on your machine.</text>
+    <text x="20" y="134" font-size="15" fill="#14583A">No hosted service</text>
+    <text x="20" y="156" font-size="15" fill="#14583A">in between.</text>
+  </g>
+  <g>
+    <rect x="244" y="0" width="228" height="200" rx="22" fill="#E6E0F6"/>
+    <text x="264" y="36" font-size="14" font-weight="600" letter-spacing="1" fill="#3E2C6E">02</text>
+    <text x="264" y="78" font-size="20" font-weight="600" fill="#3E2C6E">Evidence</text>
+    <text x="264" y="112" font-size="15" fill="#3E2C6E">Returns what the</text>
+    <text x="264" y="134" font-size="15" fill="#3E2C6E">provider sent, with</text>
+    <text x="264" y="156" font-size="15" fill="#3E2C6E">links. It never</text>
+    <text x="264" y="178" font-size="15" fill="#3E2C6E">invents a fare.</text>
+  </g>
+  <g>
+    <rect x="488" y="0" width="228" height="200" rx="22" fill="#F9DCCB"/>
+    <text x="508" y="36" font-size="14" font-weight="600" letter-spacing="1" fill="#5C2E1A">03</text>
+    <text x="508" y="78" font-size="20" font-weight="600" fill="#5C2E1A">Honest empties</text>
+    <text x="508" y="112" font-size="15" fill="#5C2E1A">Only provider_empty</text>
+    <text x="508" y="134" font-size="15" fill="#5C2E1A">means the provider</text>
+    <text x="508" y="156" font-size="15" fill="#5C2E1A">found nothing.</text>
+  </g>
+  <g>
+    <rect x="732" y="0" width="228" height="200" rx="22" fill="#D9E8FF"/>
+    <text x="752" y="36" font-size="14" font-weight="600" letter-spacing="1" fill="#0B3D91">04</text>
+    <text x="752" y="78" font-size="20" font-weight="600" fill="#0B3D91">Three ways in</text>
+    <text x="752" y="112" font-size="15" fill="#0B3D91">A terminal command,</text>
+    <text x="752" y="134" font-size="15" fill="#0B3D91">a Python call, or an</text>
+    <text x="752" y="156" font-size="15" fill="#0B3D91">AI assistant over MCP.</text>
+  </g>
+</svg>
