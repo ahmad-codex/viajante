@@ -45,6 +45,7 @@ from viajante.models import (
     FlightCabin,
     FlightQuery,
     MultiCity,
+    ProviderShop,
     RawJourneyLeg,
     RoundTrip,
     SearchError,
@@ -282,6 +283,66 @@ def _matches_leg(card: RawFlightCard, query) -> bool:
     )
 
 
+_PRICE_CHIP = re.compile(r"^up to (.*), Price, Selected$")
+_DURATION_CHIP = re.compile(r"^Under (?:(\d+) hr)?(?: ?(\d+) min)?, Duration, Selected$")
+_LAYOVER_CHIP = re.compile(
+    r"^Layover: Max (?:(\d+) hr)?(?: ?(\d+) min)?, Connecting airports, Selected$"
+)
+_LESS_EMISSIONS_CHIP = "Less emissions, Emissions, Selected"
+_HIDE_SEPARATE_CHIP = (
+    "Hide separate & self-transfer tickets, Separate & self-transfer tickets, Selected"
+)
+_TIMES_CHIP = "Times, Selected"
+
+
+def _chip_minutes(match: re.Match[str]) -> int | None:
+    hours, minutes = match.group(1), match.group(2)
+    if hours is None and minutes is None:
+        return None
+    return int(hours or 0) * 60 + int(minutes or 0)
+
+
+def _verify_provider_echo(labels: set[str | None], provider: ProviderShop) -> None:
+    """Each option Google was sent must show as a selected chip, at least as loose as asked.
+
+    A looser echoed bound only keeps more rows, which the caller's local filter trims.
+    A tighter one could drop rows the local filter keeps, so it is a markup drift.
+    """
+    chips = {label for label in labels if label}
+    clock_fields = (
+        provider.earliest_departure_hour,
+        provider.latest_departure_hour,
+        provider.earliest_arrival_hour,
+        provider.latest_arrival_hour,
+    )
+    if any(value is not None for value in clock_fields) and _TIMES_CHIP not in chips:
+        raise GoogleFlightsMarkupError("Public page did not echo the requested time filter.")
+    if provider.max_price is not None:
+        prices = [
+            int(re.sub(r"\D", "", match.group(1)))
+            for match in (_PRICE_CHIP.match(label) for label in chips)
+            if match and re.search(r"\d", match.group(1))
+        ]
+        if not prices or min(prices) < provider.max_price:
+            raise GoogleFlightsMarkupError("Public page did not echo the requested price cap.")
+    for field, pattern, label in (
+        (provider.max_duration_minutes, _DURATION_CHIP, "duration"),
+        (provider.max_layover_minutes, _LAYOVER_CHIP, "layover"),
+    ):
+        if field is None:
+            continue
+        echoed = [_chip_minutes(match) for match in (pattern.match(c) for c in chips) if match]
+        echoed = [minutes for minutes in echoed if minutes is not None]
+        if not echoed or min(echoed) < field:
+            raise GoogleFlightsMarkupError(f"Public page did not echo the requested {label} limit.")
+    if provider.less_emissions and _LESS_EMISSIONS_CHIP not in chips:
+        raise GoogleFlightsMarkupError("Public page did not echo the requested emissions filter.")
+    if provider.hide_separate_tickets and _HIDE_SEPARATE_CHIP not in chips:
+        raise GoogleFlightsMarkupError(
+            "Public page did not echo the requested separate-ticket filter."
+        )
+
+
 class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
     """Read server-rendered ds:1 data; complete RTs with owned outbound selections."""
 
@@ -396,6 +457,9 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
             trip.airlines or trip.exclude_airlines or trip.alliances or trip.exclude_alliances
         ) and "Airlines, Selected" not in labels:
             raise GoogleFlightsMarkupError("Public page did not echo the requested airline filter.")
+        provider = getattr(trip, "provider", None)
+        if provider is not None:
+            _verify_provider_echo(labels, provider)
 
     def _verify_carrier_filters(
         self, html: str, cards: tuple[RawFlightCard, ...], trip: Trip

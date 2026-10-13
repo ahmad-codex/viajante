@@ -149,7 +149,8 @@ A successful search_flights (and the flights half of search_trip) query may carr
 and their order do not change, and nothing in the block tells you what to book. It holds:
 
 - `requirements`: each constraint you named (`max_stops`, `depart_window`, `depart_after`,
-  `arrive_before`, `max_duration`, `bags`, `carry_on`), with a per-offer status of `met`,
+  `depart_before`, `arrive_before`, `arrive_after`, `max_duration`, `bags`, `carry_on`), with
+  a per-offer status of `met`,
   `unmet` or `unknown`. `max_stops` appears even when it is only the default, so its presence
   does not mean you named a stop limit.
 - `relaxed_requirements`: the named requirements that were dropped so an entry could exist.
@@ -383,16 +384,22 @@ from vibe. Optional country is Google gl (origin market); omit when unset;
 do not pass a destination ISO. Unnamed baggage_buffer is 0. The 1.4.6
 public-page transport sends a positive carry_on (a party total, not per
 passenger) and airline, exclude-airline and alliance filters, and every page
-must echo each one or the read fails. Google registers an airline exclusion
-without applying it, so viajante drops excluded or carrier-unknown cards
-itself. Owned carrier codes match exactly (returned codeshares count); name
+must echo each one or the read fails. The page applied an airline
+exclusion in a live check, but not for every card, so viajante also drops excluded or
+carrier-unknown cards itself. Owned carrier codes match exactly (returned codeshares count); name
 aliases are a fallback only when codes are absent. It refuses named checked
 bags, carry_on 0, exclude_alliances,
 and multi-city (use fetch=detail) before network work. search_explore needs the
 browser extra and accepts only one adult in economy. Detail
 refuses every bag and carrier filter because it reads no page echo. Offer bag
 allowances stay unknown. Do not remove a requested filter without an
-explicitly separate scenario.
+explicitly separate scenario. One-way public searches also send depart_before, depart_after,
+depart_window, arrive_before, arrive_after, max_duration, max_layover, price_cap,
+less_emissions and hide_separate_tickets to the page. Each sent option must be echoed; a
+missing or tighter echo fails the read as markup_drift, and the exact local filter still runs
+on each row. min_layover, via and overnight stay local. exclude_basic_economy is refused (the
+page echoes no basic-economy filter); less_emissions and hide_separate_tickets are refused on
+detail, round-trip and multi-city.
 Do not invent a bag fee. Fetch locale is English. User prompts may be any language.
 Compute ISO dates from today; do not send a past start.
 """

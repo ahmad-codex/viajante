@@ -219,6 +219,8 @@ class OfferFilters:
     depart_window: Optional[Tuple[int, int]] = None
     arrive_before: Optional[int] = None
     depart_after: Optional[int] = None
+    depart_before: Optional[int] = None
+    arrive_after: Optional[int] = None
     via: Optional[Tuple[str, ...]] = None
     exclude_via: Optional[Tuple[str, ...]] = None
     no_overnight: Optional[Tuple[str, ...]] = None
@@ -237,6 +239,8 @@ class OfferFilters:
             "depart_window": self.depart_window,
             "arrive_before": self.arrive_before,
             "depart_after": self.depart_after,
+            "depart_before": self.depart_before,
+            "arrive_after": self.arrive_after,
             "via": self.via,
             "exclude_via": self.exclude_via,
             "no_overnight": self.no_overnight,
@@ -255,6 +259,8 @@ def parse_offer_filters(
     depart_window: Optional[Tuple[int, int]] = None,
     arrive_before: Optional[int] = None,
     depart_after: Optional[int] = None,
+    depart_before: Optional[int] = None,
+    arrive_after: Optional[int] = None,
     via: Optional[Sequence[str]] = None,
     exclude_via: Optional[Sequence[str]] = None,
     no_overnight: Optional[Sequence[str]] = None,
@@ -276,6 +282,8 @@ def parse_offer_filters(
         depart_window=depart_window,
         arrive_before=arrive_before,
         depart_after=depart_after,
+        depart_before=depart_before,
+        arrive_after=arrive_after,
         via=parsed_via,
         exclude_via=parsed_exclude_via,
         no_overnight=parsed_no,
@@ -543,6 +551,8 @@ def _meets_requirements(
     max_duration_hours: Optional[float],
     bags: Optional[int],
     carry_on: Optional[int],
+    depart_before: Optional[int] = None,
+    arrive_after: Optional[int] = None,
 ) -> bool:
     """The requirements a recommendation may relax. Unknown clocks or stops cannot prove them."""
     if not _eligible_stops(raw.stops, max_stops):
@@ -558,5 +568,9 @@ def _meets_requirements(
     ):
         return False
     if not _passes_clock_bound(offer.arrival, arrive_before, before=True):
+        return False
+    if not _passes_clock_bound(offer.arrival, arrive_after, before=False):
+        return False
+    if not _passes_clock_bound(offer.departure, depart_before, before=True):
         return False
     return _passes_clock_bound(offer.departure, depart_after, before=False)

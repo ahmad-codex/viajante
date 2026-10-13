@@ -239,6 +239,11 @@ def search_flights_tool(
     depart_window: Optional[str] = None,
     arrive_before: Optional[str] = None,
     depart_after: Optional[str] = None,
+    depart_before: Optional[str] = None,
+    arrive_after: Optional[str] = None,
+    less_emissions: bool = False,
+    hide_separate_tickets: bool = False,
+    exclude_basic_economy: bool = False,
     max_duration: Optional[float] = None,
     min_layover: Optional[float] = None,
     max_layover: Optional[float] = None,
@@ -300,7 +305,15 @@ def search_flights_tool(
         exclude_airports=exclude_airports,
         include_airports=include_airports,
     )
-    validate_flight_search_args(top=top, sort=sort, fetch=fetch, **search)
+    search["depart_before"] = parse_named_clock(depart_before, role="depart-before")
+    search["arrive_after"] = parse_named_clock(arrive_after, role="arrive-after")
+    validate_flight_search_args(
+        top=top,
+        sort=sort,
+        fetch=fetch,
+        exclude_basic_economy=exclude_basic_economy,
+        **search,
+    )
     report = _with_search_lock(
         lambda: search_flights(
             trips,
@@ -312,6 +325,9 @@ def search_flights_tool(
             country=country,
             proxy=proxy,
             deadline_seconds=deadline_seconds,
+            less_emissions=less_emissions,
+            hide_separate_tickets=hide_separate_tickets,
+            exclude_basic_economy=exclude_basic_economy,
             **carriers,
             **search,
         )

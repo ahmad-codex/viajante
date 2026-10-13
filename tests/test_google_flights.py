@@ -40,7 +40,7 @@ from viajante.google_flights_rpc import (
     parse_shopping_body,
 )
 from viajante.models import FlightLeg, FlightQuery, MultiCity, RoundTrip
-from viajante.tfs import _encode_legs, encode_tfs
+from viajante.tfs import _encode_legs, _varint, encode_tfs
 
 GOLDEN_TFS_DIRECT = "GhwSCjIwMjYtMTItMDQoAGoFEgNNQURyBRIDQkNOQgEBSAGYAQI="
 GOLDEN_TFS_ONE_STOP = "GhwSCjIwMjYtMTItMDQoAWoFEgNNQURyBRIDQkNOQgEBSAGYAQI="
@@ -285,6 +285,12 @@ class QueryEncodingTests(unittest.TestCase):
         two_adults = base64.b64decode(GOLDEN_TFS_TWO_ADULTS)
         self.assertIn(b"\x42\x02\x01\x01", two_adults)
         self.assertNotIn(b"\x02\x03\x04", two_adults)
+
+    def test_negative_varint_is_refused_instead_of_looping(self) -> None:
+        # A negative int never shifts down to zero; the encoder must raise, not hang.
+        with self.assertRaisesRegex(ValueError, "must not be negative"):
+            _varint(-1)
+        self.assertEqual(_varint(300), b"\xac\x02")
 
     def test_round_trip_repeats_flight_data_and_sets_trip_kind(self) -> None:
         trip = RoundTrip("MAD", "OPO", date(2026, 10, 9), date(2026, 10, 12), max_stops=1)

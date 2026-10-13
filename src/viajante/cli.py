@@ -404,18 +404,23 @@ def _run_flights(args: argparse.Namespace) -> int:
     for note in nearby_notes(queries, exclude_airports=shop["exclude_airports"]):
         print(note, file=sys.stderr)
 
-    report = search_flights(
-        queries,
-        top=args.top,
-        baggage_buffer=args.baggage_buffer,
-        progress=lambda line: print(line, file=sys.stderr),
-        sort=args.sort,
-        fetch=args.fetch,
-        currency=args.currency,
-        country=args.country,
-        proxy=getattr(args, "proxy", None) or None,
-        **{key: value for key, value in shop.items() if key not in _TRIP_SHOP_FIELDS},
-    )
+    try:
+        report = search_flights(
+            queries,
+            top=args.top,
+            baggage_buffer=args.baggage_buffer,
+            progress=lambda line: print(line, file=sys.stderr),
+            sort=args.sort,
+            fetch=args.fetch,
+            currency=args.currency,
+            country=args.country,
+            proxy=getattr(args, "proxy", None) or None,
+            **{key: value for key, value in shop.items() if key not in _TRIP_SHOP_FIELDS},
+            **_flight_only_filters_from_args(args),
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
     _print_report(report, sort=args.sort)
 
     split = None
@@ -809,6 +814,66 @@ def _market_from_args(args: argparse.Namespace, origin: Optional[str] = None) ->
         "currency": args.currency,
         "country": args.country,
         "proxy": getattr(args, "proxy", None) or None,
+    }
+
+
+def _add_flight_only_filters(parser: argparse.ArgumentParser) -> None:
+    """Filters only the one-way `flights` search takes; the other commands do not send them."""
+    parser.add_argument(
+        "--depart-before",
+        default=None,
+        dest="depart_before",
+        metavar="HH:MM",
+        help=(
+            "Keep local departures at or before HH:MM. Sent to the public page as the "
+            "latest departure hour, then checked on each offer's clock"
+        ),
+    )
+    parser.add_argument(
+        "--arrive-after",
+        default=None,
+        dest="arrive_after",
+        metavar="HH:MM",
+        help=(
+            "Keep local arrivals at or after HH:MM. Sent to the public page as the "
+            "earliest arrival hour, then checked on each offer's clock"
+        ),
+    )
+    parser.add_argument(
+        "--less-emissions",
+        action="store_true",
+        dest="less_emissions",
+        help="Ask the public page for less-emissions flights only (one-way, fetch auto or sweep)",
+    )
+    parser.add_argument(
+        "--hide-separate-tickets",
+        action="store_true",
+        dest="hide_separate_tickets",
+        help=(
+            "Ask the public page to hide separate and self-transfer tickets "
+            "(one-way, fetch auto or sweep)"
+        ),
+    )
+    parser.add_argument(
+        "--exclude-basic-economy",
+        action="store_true",
+        dest="exclude_basic_economy",
+        help=(
+            "Refused: the public page shows no echo of the basic-economy exclusion, "
+            "so viajante cannot prove it applied"
+        ),
+    )
+
+
+def _flight_only_filters_from_args(args: argparse.Namespace) -> dict[str, object]:
+    return {
+        "depart_before": parse_named_clock(
+            getattr(args, "depart_before", None), role="depart-before"
+        ),
+        "arrive_after": parse_named_clock(getattr(args, "arrive_after", None), role="arrive-after"),
+        "less_emissions": bool(getattr(args, "less_emissions", False)),
+        "hide_separate_tickets": bool(getattr(args, "hide_separate_tickets", False)),
+        "exclude_basic_economy": bool(getattr(args, "exclude_basic_economy", False)),
     }
 
 
@@ -1455,6 +1520,7 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     _add_owned_shop_filters(flights)
+    _add_flight_only_filters(flights)
     _add_split_flags(flights)
     _add_save_flag(flights)
 

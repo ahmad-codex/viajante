@@ -90,6 +90,61 @@ class FlightLeg:
         object.__setattr__(self, "destination", destination)
 
 
+_HOUR_FIELDS = (
+    "earliest_departure_hour",
+    "latest_departure_hour",
+    "earliest_arrival_hour",
+    "latest_arrival_hour",
+)
+_MINUTE_FIELDS = ("max_duration_minutes", "max_layover_minutes")
+
+
+@dataclass(frozen=True)
+class ProviderShop:
+    """Google-side options encoded into a one-way public search.
+
+    Each option is one the public page echoes back, so a missing echo is a markup
+    drift, not an unfiltered result. Every bound is a superset of the caller's exact
+    local post-filter (Google filters clocks by whole-hour bucket, durations and
+    layovers by its own steps), so the local filter still runs on each row.
+    """
+
+    max_price: Optional[int] = None
+    earliest_departure_hour: Optional[int] = None
+    latest_departure_hour: Optional[int] = None
+    earliest_arrival_hour: Optional[int] = None
+    latest_arrival_hour: Optional[int] = None
+    max_duration_minutes: Optional[int] = None
+    max_layover_minutes: Optional[int] = None
+    less_emissions: bool = False
+    hide_separate_tickets: bool = False
+
+    def __post_init__(self) -> None:
+        _require_price_cap(self.max_price)
+        for name in _HOUR_FIELDS:
+            value = getattr(self, name)
+            if value is not None and not 0 <= value <= 23:
+                raise ValueError(f"{name} must be between 0 and 23")
+        for name in _MINUTE_FIELDS:
+            value = getattr(self, name)
+            if value is not None and value < 0:
+                raise ValueError(f"{name} must not be negative")
+
+    def is_empty(self) -> bool:
+        return not self.to_dict()
+
+    def to_dict(self) -> dict[str, object]:
+        payload: dict[str, object] = {}
+        for name in ("max_price", *_HOUR_FIELDS, *_MINUTE_FIELDS):
+            value = getattr(self, name)
+            if value is not None:
+                payload[name] = value
+        for name in ("less_emissions", "hide_separate_tickets"):
+            if getattr(self, name):
+                payload[name] = True
+        return payload
+
+
 @dataclass(frozen=True)
 class FlightQuery:
     origin: str
@@ -109,6 +164,7 @@ class FlightQuery:
     alliances: Optional[Tuple[str, ...]] = None
     exclude_alliances: Optional[Tuple[str, ...]] = None
     nearby_label: Optional[str] = None
+    provider: Optional[ProviderShop] = None
 
     def __post_init__(self) -> None:
         origin = _normalize_iata(self.origin, role="origin")
@@ -145,6 +201,8 @@ class FlightQuery:
         }
         payload.update(_shop_fields_json(self))
         _put_truthy(payload, "nearby_label", self.nearby_label)
+        if self.provider is not None and not self.provider.is_empty():
+            payload["google_filters"] = self.provider.to_dict()
         return payload
 
 

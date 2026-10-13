@@ -31,6 +31,7 @@ from viajante.flight_offers import (
     validate_sort,
 )
 from viajante.flight_packages import _packaged_eligible, package_shop_filters
+from viajante.flight_provider import provider_options
 from viajante.flight_routes import (
     _is_route_spec,
     _overlay_carrier_filters,
@@ -80,6 +81,59 @@ from viajante.ratelimit import NOT_SENT
 from viajante.storage import default_state_dir
 
 FetchMode = Literal["auto", "sweep", "detail"]
+
+
+EXCLUDE_BASIC_REFUSAL = (
+    "exclude_basic_economy is refused: Google's public page shows no echo of the "
+    "basic-economy exclusion, so viajante cannot prove it applied, and it has no local "
+    "fare-class check to fall back on."
+)
+ECHO_ONLY_DETAIL_REFUSAL = (
+    "less_emissions and hide_separate_tickets run only on the public page "
+    "(fetch 'auto' or 'sweep'); fetch 'detail' cannot apply them, and they have no "
+    "local check."
+)
+ECHO_ONLY_TRIP_REFUSAL = (
+    "less_emissions and hide_separate_tickets apply only to one-way searches; "
+    "round-trip and multi-city searches cannot send them, and they have no local check."
+)
+
+
+def _overlay_provider_options(
+    trips: Sequence[Trip],
+    filters: OfferFilters,
+    *,
+    planned: Literal["sweep", "detail"],
+    less_emissions: bool,
+    hide_separate_tickets: bool,
+) -> tuple[Trip, ...]:
+    """Send the named bounds to Google's one-way public page; keep the rest local.
+
+    A detail search and round-trip or multi-city searches keep every bound local.
+    less_emissions and hide_separate_tickets have no local check, so they are refused
+    anywhere the page cannot echo them.
+    """
+    echo_only = less_emissions or hide_separate_tickets
+    if echo_only and planned == "detail":
+        raise ValueError(ECHO_ONLY_DETAIL_REFUSAL)
+    if echo_only and not all(isinstance(trip, FlightQuery) for trip in trips):
+        raise ValueError(ECHO_ONLY_TRIP_REFUSAL)
+    if planned == "detail":
+        return tuple(trips)
+    return tuple(
+        replace(
+            trip,
+            provider=provider_options(
+                trip,
+                filters,
+                less_emissions=less_emissions,
+                hide_separate_tickets=hide_separate_tickets,
+            ),
+        )
+        if isinstance(trip, FlightQuery)
+        else trip
+        for trip in trips
+    )
 
 
 def resolve_fetch_mode(fetch: FetchMode) -> Literal["sweep", "detail"]:
@@ -313,6 +367,11 @@ def get_flights(
     depart_window: Optional[Tuple[int, int]] = None,
     arrive_before: Optional[int] = None,
     depart_after: Optional[int] = None,
+    depart_before: Optional[int] = None,
+    arrive_after: Optional[int] = None,
+    less_emissions: bool = False,
+    hide_separate_tickets: bool = False,
+    exclude_basic_economy: bool = False,
     via: Optional[Sequence[str]] = None,
     exclude_via: Optional[Sequence[str]] = None,
     no_overnight: Optional[Sequence[str]] = None,
@@ -346,6 +405,11 @@ def get_flights(
         "depart_window": depart_window,
         "arrive_before": arrive_before,
         "depart_after": depart_after,
+        "depart_before": depart_before,
+        "arrive_after": arrive_after,
+        "less_emissions": less_emissions,
+        "hide_separate_tickets": hide_separate_tickets,
+        "exclude_basic_economy": exclude_basic_economy,
         "via": via,
         "exclude_via": exclude_via,
         "no_overnight": no_overnight,
@@ -421,6 +485,9 @@ def validate_flight_search_args(
     depart_window: Optional[Tuple[int, int]] = None,
     arrive_before: Optional[int] = None,
     depart_after: Optional[int] = None,
+    depart_before: Optional[int] = None,
+    arrive_after: Optional[int] = None,
+    exclude_basic_economy: bool = False,
     via: Optional[Sequence[str]] = None,
     exclude_via: Optional[Sequence[str]] = None,
     no_overnight: Optional[Sequence[str]] = None,
@@ -434,6 +501,8 @@ def validate_flight_search_args(
     """
     if top <= 0:
         raise ValueError("top must be positive")
+    if exclude_basic_economy:
+        raise ValueError(EXCLUDE_BASIC_REFUSAL)
     filters = parse_offer_filters(
         max_layover_hours=max_layover_hours,
         min_layover_hours=min_layover_hours,
@@ -441,6 +510,8 @@ def validate_flight_search_args(
         depart_window=depart_window,
         arrive_before=arrive_before,
         depart_after=depart_after,
+        depart_before=depart_before,
+        arrive_after=arrive_after,
         via=via,
         exclude_via=exclude_via,
         no_overnight=no_overnight,
@@ -474,6 +545,11 @@ def search_flights(
     depart_window: Optional[Tuple[int, int]] = None,
     arrive_before: Optional[int] = None,
     depart_after: Optional[int] = None,
+    depart_before: Optional[int] = None,
+    arrive_after: Optional[int] = None,
+    less_emissions: bool = False,
+    hide_separate_tickets: bool = False,
+    exclude_basic_economy: bool = False,
     via: Optional[Sequence[str]] = None,
     exclude_via: Optional[Sequence[str]] = None,
     no_overnight: Optional[Sequence[str]] = None,
@@ -498,6 +574,9 @@ def search_flights(
         depart_window=depart_window,
         arrive_before=arrive_before,
         depart_after=depart_after,
+        depart_before=depart_before,
+        arrive_after=arrive_after,
+        exclude_basic_economy=exclude_basic_economy,
         via=via,
         exclude_via=exclude_via,
         no_overnight=no_overnight,
@@ -521,6 +600,13 @@ def search_flights(
         exclude_alliances=exclude_alliances,
     )
     planned = resolve_fetch_mode(fetch)
+    trips = _overlay_provider_options(
+        trips,
+        filters,
+        planned=planned,
+        less_emissions=less_emissions,
+        hide_separate_tickets=hide_separate_tickets,
+    )
     report_progress = progress or (lambda _: None)
     started = time.perf_counter()
 

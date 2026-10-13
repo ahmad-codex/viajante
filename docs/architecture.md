@@ -131,10 +131,10 @@ Everything starts as a frozen dataclass: `FlightQuery`, `RoundTrip`, or
 alliance filters are fields on the query. The public-page path sends carry-on,
 airline, and alliance-include filters and requires the page to echo each one;
 it fail-closes checked bags and alliance exclusion because no page evidence
-proves them. Clock windows, layover limits, via cities, overnight rules,
-and price caps are
-*local* post-filters applied after parsing, because Google has no request
-slot for them.
+proves them. One-way searches also send clock bounds, duration, max layover, price
+caps, and the less-emissions and separate-ticket options as superset bounds. Each must
+be echoed on the page, and the exact local post-filter still runs on every row. Min
+layover, via cities, overnight rules, and airports stay *local* post-filters.
 
 ### 2. The public URL and provider data
 

@@ -34,6 +34,7 @@ add new prose labels to any result.
 - Reject-only Google consent cookies kept across CLI processes (`google-consent.json`): `src/viajante/consent.py`
 - Route specs, metro and nearby expand, trip include/exclude: `src/viajante/flight_routes.py`
 - Flight post-filters (clocks, layover, via, overnight, bag requirements): `src/viajante/flight_filters.py`
+- Google-side one-way options (superset bounds, the echo each needs): `src/viajante/flight_provider.py`; echo checks: `_verify_provider_echo` in `src/viajante/google_flights_public.py`
 - Offer normalization, LCC buffer, flight ranking, per-query recommendation: `src/viajante/flight_offers.py`
 - Flight evidence stamps (Google Flights URLs, offer evidence): `src/viajante/flight_evidence.py`
 - Round-trip / multi-city next-leg completion and package filters: `src/viajante/flight_packages.py`
@@ -152,13 +153,23 @@ add new prose labels to any result.
   as a cooldown like any other.
 - Refused before any network call: checked bags, `carry_on` 0, alliance exclusion
   on the public path, and multi-city on sweep (use explicit `--fetch detail`).
-  Detail refuses every bag and carrier filter. Never silently drop a filter.
+  Detail refuses every bag and carrier filter. `exclude_basic_economy` is refused on
+  every path (the page echoes no basic-economy filter). `less_emissions` and
+  `hide_separate_tickets` are refused on detail, round-trip, and multi-city. Never
+  silently drop a filter.
 - A missing filter echo on a page is `markup_drift`, never an unfiltered result.
-  Google does not apply airline exclusions, so the loop drops excluded and
-  carrier-unknown cards.
-- Clock, layover, via, overnight, duration, airport, and price-cap filters are
-  local, applied after parse and before `--top`. An unknown clock, stop count,
-  or layover cannot prove an include or an exclude.
+  The page applied an airline exclusion in a live check, but the page does not prove
+  it for every card, so the loop still drops excluded and carrier-unknown cards.
+- One-way public searches send clock bounds (whole-hour buckets), duration, max
+  layover, price cap, less emissions, and hide separate tickets to the page. Each
+  bound is rounded outward so the page keeps every row the exact local filter keeps.
+  Each sent option must be echoed as a selected chip at least as loose as asked; a
+  missing or tighter echo is `markup_drift`. The local filter still runs on every row
+  before `--top`. Min layover, via, overnight, and airport filters stay local.
+  Detail and round-trip or multi-city searches keep the timing bounds local. An unknown
+  clock, stop count, or layover cannot prove an include or an exclude.
+  A page-side bound that leaves no cards is `provider_empty` for the query as sent;
+  `filtered_out` counts only rows the page returned that the local filter removed.
 - Public round trips check at most eight outbound candidates, one return page each.
   The provider's package total is the price. Never sum one-way amounts. The result
   is scope-bound.

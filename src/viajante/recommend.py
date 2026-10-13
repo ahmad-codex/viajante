@@ -33,7 +33,9 @@ SCORE_WEIGHTS: Mapping[str, float] = {"price": 0.5, "duration": 0.35, "stops": 0
 # First name is relaxed first: clock preferences, then duration, then bags, stops last.
 RELAX_ORDER: Tuple[str, ...] = (
     "arrive_before",
+    "arrive_after",
     "depart_after",
+    "depart_before",
     "depart_window",
     "max_duration",
     "carry_on",
@@ -95,6 +97,8 @@ class Requirements:
     depart_window: Optional[Tuple[int, int]] = None
     depart_after: Optional[int] = None
     arrive_before: Optional[int] = None
+    depart_before: Optional[int] = None
+    arrive_after: Optional[int] = None
     max_duration: Optional[float] = None
     carry_on: Optional[int] = None
     bags: Optional[int] = None
@@ -106,7 +110,7 @@ class Requirements:
         value = getattr(self, name)
         if name == "depart_window":
             return f"{_hhmm(value[0])}-{_hhmm(value[1])}"
-        if name in ("depart_after", "arrive_before"):
+        if name in ("depart_after", "arrive_before", "depart_before", "arrive_after"):
             return _hhmm(value)
         return value
 
@@ -120,16 +124,22 @@ def _status(offer: FlightOffer, name: str, value: object) -> Status:
         if offer.stops_count is None:
             return "unknown" if value >= 1 else "unmet"
         return "met" if offer.stops_count <= value else "unmet"
-    if name in ("depart_window", "depart_after"):
+    if name in ("depart_window", "depart_after", "depart_before"):
         minutes = clock_minutes(offer.departure)
         if minutes is None:
             return "unmet"
         if name == "depart_window":
             return "met" if value[0] <= minutes <= value[1] else "unmet"
+        if name == "depart_before":
+            return "met" if minutes <= value else "unmet"
         return "met" if minutes >= value else "unmet"
-    if name == "arrive_before":
+    if name in ("arrive_before", "arrive_after"):
         minutes = clock_minutes(offer.arrival)
-        return "met" if minutes is not None and minutes <= value else "unmet"
+        if minutes is None:
+            return "unmet"
+        if name == "arrive_before":
+            return "met" if minutes <= value else "unmet"
+        return "met" if minutes >= value else "unmet"
     if name == "max_duration":
         if offer.duration_hours is None:
             return "unknown"

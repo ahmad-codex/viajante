@@ -62,11 +62,14 @@ list and accepted values.
 | `--bags N` | Checked bags. Refused: no transport can verify them. |
 | `--depart-window 06:00-12:00` | Keep flights departing within a local time window. |
 | `--depart-after 08:00` / `--arrive-before 20:00` | Filter on reported local departure or arrival times. |
+| `--depart-before 18:30` / `--arrive-after 08:00` | Keep departures at or before, and arrivals at or after, a named time. One-way public search sends the whole hour bucket to the page and checks the exact clock locally. |
+| `--less-emissions` / `--hide-separate-tickets` | Ask the page for less-emissions flights, or hide separate and self-transfer tickets. One-way public search only (`--fetch auto` or `sweep`). Each must be echoed. |
+| `--exclude-basic-economy` | Refused. The public page echoes no basic-economy filter, so viajante cannot prove it applied. |
 | `--via IST` / `--exclude-via DXB` | Filter on reported connecting airports. |
 | `--no-overnight any` / `--require-overnight IST` | Filter overnight connections at all airports or named airport codes. |
 | `--min-layover 1` / `--max-layover 8` | Filter reported layover durations for one-stop offers, in hours. |
-| `--max-duration 16` | Limit the reported itinerary duration, in hours. |
-| `--price-cap 500` | Remove returned fares above this amount in the quote currency. |
+| `--max-duration 16` | Limit the reported itinerary duration, in hours. One-way public search also sends the limit to the page, which must echo it. |
+| `--price-cap 500` | Remove returned fares above this amount in the quote currency. One-way public search also sends the cap to the page, which must echo it. |
 | `--nearby` | Include known airports in the same city as the named origin or destination. |
 | `--include-airports LHR,LGW` / `--exclude-airports STN` | Restrict destinations or exclude origins and destinations; exclusions take priority. |
 | `--sort duration` | Order by `ranked`, `fare`/`price`, `duration`, `departure`, or `arrival`. |
@@ -173,10 +176,12 @@ provider returned nothing. It adds to `offers`; it never replaces them, and
 (abridged; each `offer` is the full offer object, with `evidence`.)
 
 **Requirements.** `--max-stops`, `--depart-window`, `--depart-after`,
-`--arrive-before`, `--max-duration`, `--bags`, and `--carry-on` are hard. The
+`--depart-before`, `--arrive-before`, `--arrive-after`, `--max-duration`, `--bags`, and
+`--carry-on` are hard. The
 pick meets all that you named. If no offer does, the fewest are relaxed, and
 `relaxed_requirements` names exactly which. Ties relax the earlier name first
-in this order: `arrive_before`, `depart_after`, `depart_window`, `max_duration`,
+in this order: `arrive_before`, `arrive_after`, `depart_after`, `depart_before`, `depart_window`,
+`max_duration`,
 `carry_on`, `bags`, `max_stops`. Each shortlist entry shows `met`, `unmet`, or
 `unknown` per requirement. An unknown departure/arrival clock, or an unknown
 stop count under `--max-stops 0`, cannot prove a requirement; unknown bag counts

@@ -50,7 +50,8 @@ RESULT_TABS = "EgQIABABIgA"
 HTTP_TIMEOUT_SECONDS = 30
 # One replay on empty/drift/5xx. Happy path does not sleep. Not an anti-bot pause.
 SWEEP_RETRY_BACKOFF_SECONDS = 0.05
-# Browser-like HTTP/2 stream cap. Dates fallback is at most 31 days.
+# Client-side cap on concurrent GETs per batch. Not a Google limit: its HTTP/2 server
+# advertises 100 streams. Not measured against throttling. Dates fallback is at most 31 days.
 _SWEEP_STREAMS = 8
 HTTP_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -369,7 +370,12 @@ def _normalize_proxy(proxy: Optional[str]) -> Optional[str]:
 
 
 class ChromeSweepClient:
-    """Process-wide curl_cffi AsyncSession: Chrome TLS, HTTP/2 multiplex, keep-alive."""
+    """Process-wide curl_cffi AsyncSession: Chrome TLS over HTTP/2, keep-alive.
+
+    A burst of N concurrent GETs on a cold session opens N connections, because
+    libcurl does not wait for the first one to multiplex. Later batches reuse a
+    single HTTP/2 connection for all their streams.
+    """
 
     def __init__(self, *, proxy: Optional[str] = None) -> None:
         import asyncio
@@ -612,7 +618,7 @@ class ChromeSweepClient:
         get: bool = False,
         sent: Optional[list[bool]] = None,
     ) -> list[SweepHttpResponse]:
-        # Keep HTTP/2 multiplex on the happy path. After HTTP 429 or a transport
+        # Keep the batch running on the happy path. After HTTP 429 or a transport
         # failure, stop feeding this TLS session. Unsent blocking jobs have no HTTP
         # status; only transport failures may be continued on a fresh session.
         semaphore = self._asyncio.Semaphore(getattr(self, "_streams", _SWEEP_STREAMS))

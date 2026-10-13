@@ -12,6 +12,7 @@ from viajante.models import (
     FlightLeg,
     FlightQuery,
     MultiCity,
+    ProviderShop,
     RawJourneyLeg,
     RawSegment,
     RoundTrip,
@@ -43,6 +44,18 @@ _FLIGHT_TO = 14
 _AIRPORT_CODE = 2
 _ENTITY_KIND = 1
 _ENTITY_AIRPORT = 1
+
+_FLIGHT_EARLIEST_DEPARTURE = 8
+_FLIGHT_LATEST_DEPARTURE = 9
+_FLIGHT_EARLIEST_ARRIVAL = 10
+_FLIGHT_LATEST_ARRIVAL = 11
+_FLIGHT_MAX_DURATION = 12
+_FLIGHT_MAX_LAYOVER = 18
+_FLIGHT_EMISSIONS = 19
+_EMISSIONS_LESS = 1
+
+_INFO_MAX_PRICE = 12
+_INFO_HIDE_SEPARATE = 17
 
 _EXPLORE_SURFACE = 28
 _EXPLORE_CHANNEL = 3
@@ -76,6 +89,7 @@ def encode_tfs(trip: Trip) -> str:
         trip_kind=trip_kind_code(trip),
         include_carriers=include,
         exclude_carriers=exclude,
+        provider=getattr(trip, "provider", None),
     )
 
 
@@ -136,6 +150,9 @@ def trip_kind_code(trip: Trip) -> int:
 
 
 def _varint(n: int) -> bytes:
+    if n < 0:
+        # `n >>= 7` never reaches zero for a negative int, so refuse it here.
+        raise ValueError("tfs varint must not be negative")
     out = bytearray()
     while True:
         bits = n & 0x7F
@@ -177,15 +194,47 @@ def _flight_data(
     *,
     include: Sequence[str] = (),
     exclude: Sequence[str] = (),
+    provider: Optional[ProviderShop] = None,
 ) -> bytes:
     return (
         _string(_FLIGHT_DATE, leg.departure_date.isoformat())
         + _varint_field(_FLIGHT_MAX_STOPS, leg.max_stops)
         + b"".join(_string(_FLIGHT_INCLUDE_CARRIERS, code) for code in include)
         + b"".join(_string(_FLIGHT_EXCLUDE_CARRIERS, code) for code in exclude)
+        + _provider_timing_fields(provider)
         + _len_delim(_FLIGHT_FROM, _airport(leg.origin))
         + _len_delim(_FLIGHT_TO, _airport(leg.destination))
+        + _provider_layover_emissions(provider)
     )
+
+
+def _provider_timing_fields(provider: Optional[ProviderShop]) -> bytes:
+    """Flight fields 8-12, which sit before the airports in field order."""
+    if provider is None:
+        return b""
+    out = b""
+    for number, value in (
+        (_FLIGHT_EARLIEST_DEPARTURE, provider.earliest_departure_hour),
+        (_FLIGHT_LATEST_DEPARTURE, provider.latest_departure_hour),
+        (_FLIGHT_EARLIEST_ARRIVAL, provider.earliest_arrival_hour),
+        (_FLIGHT_LATEST_ARRIVAL, provider.latest_arrival_hour),
+        (_FLIGHT_MAX_DURATION, provider.max_duration_minutes),
+    ):
+        if value is not None:
+            out += _varint_field(number, value)
+    return out
+
+
+def _provider_layover_emissions(provider: Optional[ProviderShop]) -> bytes:
+    """Flight fields 18 and 19, which follow the airports in field order."""
+    if provider is None:
+        return b""
+    out = b""
+    if provider.max_layover_minutes is not None:
+        out += _varint_field(_FLIGHT_MAX_LAYOVER, provider.max_layover_minutes)
+    if provider.less_emissions:
+        out += _packed_enums(_FLIGHT_EMISSIONS, (_EMISSIONS_LESS,))
+    return out
 
 
 def _selected_flight_data(segment: RawSegment) -> bytes:
@@ -217,9 +266,13 @@ def _encode_legs(
     infants_on_lap: int = 0,
     include_carriers: Sequence[str] = (),
     exclude_carriers: Sequence[str] = (),
+    provider: Optional[ProviderShop] = None,
 ) -> str:
     return _encode_route_messages(
-        [_flight_data(leg, include=include_carriers, exclude=exclude_carriers) for leg in legs],
+        [
+            _flight_data(leg, include=include_carriers, exclude=exclude_carriers, provider=provider)
+            for leg in legs
+        ],
         adults=adults,
         cabin=cabin,
         trip_kind=trip_kind,
@@ -227,6 +280,7 @@ def _encode_legs(
         children=children,
         infants_in_seat=infants_in_seat,
         infants_on_lap=infants_on_lap,
+        provider=provider,
     )
 
 
@@ -240,6 +294,7 @@ def _encode_route_messages(
     children: int = 0,
     infants_in_seat: int = 0,
     infants_on_lap: int = 0,
+    provider: Optional[ProviderShop] = None,
 ) -> str:
     passengers = (
         (_PASSENGER_ADULT,) * adults
@@ -247,12 +302,15 @@ def _encode_route_messages(
         + (_PASSENGER_INFANT_IN_SEAT,) * infants_in_seat
         + (_PASSENGER_INFANT_ON_LAP,) * infants_on_lap
     )
+    shop = provider if provider is not None else ProviderShop()
     flights = b"".join(_len_delim(_INFO_DATA, route) for route in route_messages)
     payload = (
         flights
         + _packed_enums(_INFO_PASSENGERS, passengers)
         + _varint_field(_INFO_SEAT, CABIN_SEAT[cabin])
+        + (_varint_field(_INFO_MAX_PRICE, shop.max_price) if shop.max_price is not None else b"")
         + _baggage_filter(carry_on)
+        + (_varint_field(_INFO_HIDE_SEPARATE, 1) if shop.hide_separate_tickets else b"")
         + _varint_field(_INFO_TRIP, trip_kind)
     )
     return base64.b64encode(payload).decode("ascii")

@@ -2,9 +2,10 @@
 
 A user names one or more `ORIGIN-DEST:DATE` routes and gets Google Flights offers with fare,
 duration, stops, clocks, carriers, and a Google Flights link. Then come per-query stop
-comparisons and a `recommendation` shortlist with role labels. Filters that Google cannot
-apply are applied locally after the parse. Filters viajante cannot honor are refused before
-any network call.
+comparisons and a `recommendation` shortlist with role labels. One-way public searches send
+the clock, duration, max-layover, price-cap, emissions, and separate-ticket options to Google
+and check each one locally; the rest are applied locally after the parse. Filters viajante
+cannot honor are refused before any network call.
 
 ## Sub-features
 
@@ -13,13 +14,16 @@ any network call.
 - `fl-rt` is a packaged round trip (`--trip rt`). It checks at most 8 outbound candidates
   with one return page each, and the price is the provider's package total.
 - `fl-multi` is multi-city (`--trip multi`). It requires `--fetch detail` (Chromium).
-- `fl-filters` covers the local clock, layover, via, overnight, duration, airport, and
-  price-cap filters, applied before `--top`.
+- `fl-filters` covers the clock, duration, max-layover, price-cap, and emissions options.
+  Google applies the ones it echoes, and viajante checks every row locally before `--top`.
+  Min layover, via, overnight, and airport filters are local only.
 - `fl-carriers` covers `--airlines`, `--exclude-airlines`, and `--alliance`. Excluded and
   carrier-unknown cards are dropped.
 - `fl-refusals` covers capabilities refused before any request (`--bags 1`,
   `--exclude-alliance` on the public path, and multi-city on sweep), each a failed query
-  with `Not sent.`, plus argparse refusals such as `--max-stops 3` (exit 1).
+  with `Not sent.`, plus argparse refusals such as `--max-stops 3` (exit 1). Also refused
+  before any request: `--exclude-basic-economy` (every path), and `--less-emissions` or
+  `--hide-separate-tickets` on `--fetch detail`, round-trip, and multi-city (exit 1).
 - `fl-metro` covers metro codes (`LON`, `NYC`, `TYO`) and `--nearby` expansion into labeled
   alternatives.
 - `fl-reco` is the `recommendation` block: `top_score`, `lowest_price`, `shortest`, and
