@@ -26,7 +26,7 @@ No implied origin, no implied currency, no Madrid, no euros-as-default.
 - Do not invent FX. Do not special-case EUR (no EUR-only buffer, glyph
   except when the owned quote is actually EUR).
 - Internal `baggage_buffer` is a ranking add-on in the **quote** currency.
-  Do not treat the name as “this tool is euros.” Prefer `--bags` /
-  `--carry-on`. Unnamed buffer stays 0.
+  Do not treat the name as “this tool is euros.” Use `--carry-on` for a bag
+  on the public page; checked `--bags` is refused. Unnamed buffer stays 0.
 
 `AGENTS.md` still wins on JSON keys, fetch pacing, and no invented fares.

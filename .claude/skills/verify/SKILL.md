@@ -23,8 +23,8 @@ per feature.
 `flights`, `dates`, `flex`, `explore`, `hotels`, `trip`, `recheck-offer`, `watch`, and
 `hidden-city` send real requests to Google, Booking, or Skiplagged from this machine's IP.
 Nothing about this is mocked. A Google 429 or RPC status 13 sets a **machine-wide cooldown**
-(2 min, doubling up to 30 min) that blocks every viajante process, including the user's own
-MCP sessions.
+(2 min, or the `Retry-After` Google names, up to 30 min) that blocks every viajante process,
+including the user's own MCP sessions.
 
 - Run `doctor.sh` first. If its `live` line says `BLOCKED`, run no live search and report the
   time it gives.
@@ -143,9 +143,8 @@ What a proof needs:
 - **No-network paths.** Commands that claim to send nothing (`airports`, `awards`, `points`,
   `feedback --no-browser`, `validate_itinerary`, input refusals with exit 1) should finish
   instantly and leave no cooldown file. A refusal's proof is the exit code plus the message
-(`Not sent.` for a per-query refusal).
-  The fact that a request fails doesn't prove nothing was sent. For a refusal, also check
-  that `$RUN/state` gained no `google-*.json`.
+  (`Not sent.` for a per-query refusal). The fact that a request fails doesn't prove nothing
+  was sent. For a refusal, also check that `$RUN/state` gained no `google-*.json`.
 - **Failures are results too.** `blocked`, `markup_drift`, and `fetch_failed` are real
   outcomes of the real path. Report them with the stderr and diagnostics. Don't retry them
   into a success.

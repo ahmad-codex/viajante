@@ -9,17 +9,44 @@ history up to commit 6ee0fb7.
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-10-13
+
 ### Added
 
 - `viajante feedback` opens a prefilled GitHub issue with the Viajante version,
   Python version, and platform. Viajante sends nothing itself; `--no-browser`
   prints the link only.
+- One-way `flights` takes `--depart-before HH:MM`, `--arrive-after HH:MM`,
+  `--less-emissions`, and `--hide-separate-tickets` (MCP `search_flights`:
+  `depart_before`, `arrive_after`, `less_emissions`, `hide_separate_tickets`).
+  Fetch `auto` and `sweep` send the clock bounds, `max_duration`, `max_layover`,
+  the price cap, and the two options to Google's page. The page must echo each
+  one; a missing or tighter echo is `markup_drift`. The local filter still runs on
+  every row.
+- `--exclude-basic-economy` is refused on every path: the public page echoes no
+  basic-economy filter, so viajante cannot prove it applied.
+
+### Changed
+
+- Detail searches click Reject only on Google's consent banner. The Accept
+  selectors are gone.
+- A results page that finishes loading with no results grid and no empty state is
+  `markup_drift` after a 20 s probe, not a 60 s timeout retried three times.
+- The Google cooldown after a 429 is a fixed 2 minutes, or the named `Retry-After`
+  up to 30 minutes. It no longer doubles on each repeat limit.
 
 ### Fixed
 
 - `verify_answer` no longer passes an invented amount near zero. A zero money field
   (an unnamed baggage buffer) owned any claim up to 1, and recommendation score maps
   (`breakdown`, `weights`) were read as amounts in the quote currency.
+- `--help` examples use future dates and no longer show `--bags`, which the
+  public page refuses.
+- The README, usage guide, and `llms.txt` no longer say `--bags` asks Google to
+  price checked bags. Only `--carry-on` rides the request.
+- Four CLI tests used a departure date that is now in the past.
+- The MCP `initialize` response reports the viajante version; it was blank.
+
 
 ## [1.5.0] - 2026-10-08
 

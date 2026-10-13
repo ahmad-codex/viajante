@@ -44,6 +44,7 @@ from viajante.ratelimit import (
     rate_limit_advice,
     rate_limit_status,
 )
+from viajante.runtime import package_version
 from viajante.skiplagged import SkiplaggedRateLimited
 from viajante.skiplagged import _classify as classify_skiplagged
 
@@ -155,6 +156,10 @@ class ToolMetadataTests(_StateDir):
 
     def test_tool_set_is_the_documented_one(self) -> None:
         self.assertEqual(set(self.tools), NETWORK_TOOLS | LOCAL_TOOLS)
+
+    def test_server_info_carries_the_package_version(self) -> None:
+        # initialize serverInfo.version was blank until the server passed its version.
+        self.assertEqual(self.server.version, package_version())
 
     def test_every_tool_has_a_title_and_annotations(self) -> None:
         for name, tool in self.tools.items():

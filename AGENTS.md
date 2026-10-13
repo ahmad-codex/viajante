@@ -164,7 +164,9 @@ add new prose labels to any result.
   layover, price cap, less emissions, and hide separate tickets to the page. Each
   bound is rounded outward so the page keeps every row the exact local filter keeps.
   Each sent option must be echoed as a selected chip at least as loose as asked; a
-  missing or tighter echo is `markup_drift`. The local filter still runs on every row
+  missing or tighter echo is `markup_drift`, except that the time, emissions, and
+  separate-ticket echoes are checked for presence only (see `docs/architecture.md`).
+  The local filter still runs on every row
   before `--top`. Min layover, via, overnight, and airport filters stay local.
   Detail and round-trip or multi-city searches keep the timing bounds local. An unknown
   clock, stop count, or layover cannot prove an include or an exclude.

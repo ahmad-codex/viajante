@@ -7,8 +7,8 @@ Runs on your machine, no API keys.
 [![npm](https://img.shields.io/npm/v/@viajante/mcp.svg)](https://www.npmjs.com/package/@viajante/mcp)
 [![Tests](https://github.com/felipebasurto/viajante/actions/workflows/test.yml/badge.svg)](https://github.com/felipebasurto/viajante/actions/workflows/test.yml)
 
-It reads Google Flights, Google Hotels, and Booking.com directly and returns
-prices, itinerary details, and links. It reports what the provider returned
+It reads Google Flights, Google Hotels, and Booking.com directly, and Skiplagged
+when you opt in. It returns prices, itinerary details, and links. It reports what the provider returned
 and says so when something is unknown; it never invents a fare.
 
 [Website](https://viajante.felipebasurto.com) ·
@@ -115,6 +115,7 @@ Run `viajante <command> --help` for options. Add `--save FILE` to write a JSON r
 | `airports` | Find airport codes |
 | `hidden-city`, `awards`, `points` | Skiplagged fares, award value, transfer partners |
 | `history`, `watch` | Recorded prices and saved re-runs (opt-in) |
+| `feedback` | Open a prefilled GitHub issue (viajante sends nothing itself) |
 
 ```bash
 viajante dates BOS-LHR --from 2026-11-01 --to 2026-11-30 --nights 7
@@ -152,7 +153,8 @@ that same environment.
 
 - **Currency.** Taken from `--currency`, or from a named origin airport's
   country. Hotels always need one. Viajante never converts between currencies.
-- **Baggage.** `--bags` and `--carry-on` ask Google for bag pricing.
+- **Baggage.** `--carry-on` asks Google to price one carry-on. Checked bags
+  (`--bags`) are refused, because no transport can verify them.
   `--baggage-buffer` only affects ranking; it is not a quoted fee.
 - **Hotels.** Prices are for the whole stay. Free cancellation is required
   unless you opt out. Google rates 0–5, Booking.com 0–10.

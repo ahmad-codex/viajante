@@ -170,7 +170,7 @@ Offers whose currency differs or is unproven are never price-compared or price-s
 Provider-empty queries carry no recommendation. Round-trip and multi-city packages are never
 relaxed. Fare rules (refund, change) are never in the rows, so the block makes no claim about them.
 
-## Public-page transport in 1.4.6
+## Public-page transport
 
 Flights auto uses sweep public HTML bootstrap data, not unsigned shopping RPC.
 Round trips pin up to eight owned outbound journeys and read the provider package
@@ -381,7 +381,7 @@ destination, or currency is not proven (a city with several airports,
 Europe, unnamed origin, two possible currencies), do not pick: ask or
 error. Unknown cannot prove include. Do not invent IATA, gl, or ISO 4217
 from vibe. Optional country is Google gl (origin market); omit when unset;
-do not pass a destination ISO. Unnamed baggage_buffer is 0. The 1.4.6
+do not pass a destination ISO. Unnamed baggage_buffer is 0. The
 public-page transport sends a positive carry_on (a party total, not per
 passenger) and airline, exclude-airline and alliance filters, and every page
 must echo each one or the read fails. The page applied an airline
@@ -396,7 +396,8 @@ allowances stay unknown. Do not remove a requested filter without an
 explicitly separate scenario. One-way public searches also send depart_before, depart_after,
 depart_window, arrive_before, arrive_after, max_duration, max_layover, price_cap,
 less_emissions and hide_separate_tickets to the page. Each sent option must be echoed; a
-missing or tighter echo fails the read as markup_drift, and the exact local filter still runs
+missing or tighter echo fails the read as markup_drift, except that the time, emissions and
+separate-ticket echoes are checked for presence only. The exact local filter still runs
 on each row. min_layover, via and overnight stay local. exclude_basic_economy is refused (the
 page echoes no basic-economy filter); less_emissions and hide_separate_tickets are refused on
 detail, round-trip and multi-city.

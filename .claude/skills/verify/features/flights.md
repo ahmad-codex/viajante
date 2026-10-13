@@ -14,9 +14,11 @@ cannot honor are refused before any network call.
 - `fl-rt` is a packaged round trip (`--trip rt`). It checks at most 8 outbound candidates
   with one return page each, and the price is the provider's package total.
 - `fl-multi` is multi-city (`--trip multi`). It requires `--fetch detail` (Chromium).
-- `fl-filters` covers the clock, duration, max-layover, price-cap, and emissions options.
-  Google applies the ones it echoes, and viajante checks every row locally before `--top`.
-  Min layover, via, overnight, and airport filters are local only.
+- `fl-filters` covers the clock (`--depart-window`, `--depart-after`, `--depart-before`,
+  `--arrive-before`, `--arrive-after`), duration, max-layover, price-cap, emissions
+  (`--less-emissions`), and separate-ticket (`--hide-separate-tickets`) options. On a one-way
+  search Google receives them, must echo each one, and viajante checks every row locally
+  before `--top`. Min layover, via, overnight, and airport filters are local only.
 - `fl-carriers` covers `--airlines`, `--exclude-airlines`, and `--alliance`. Excluded and
   carrier-unknown cards are dropped.
 - `fl-refusals` covers capabilities refused before any request (`--bags 1`,

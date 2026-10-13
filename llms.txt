@@ -1,6 +1,6 @@
 # viajante
 
-Local Google Flights, Google Hotels, and Booking.com search. No API keys.
+Local Google Flights, Google Hotels, and Booking.com search (Skiplagged is opt-in). No API keys.
 Fetch locale is English. User prompts may be any language. No implied home hub.
 
 ## Install (agents)
@@ -39,7 +39,11 @@ Every result (except lookup_airports) opens with an envelope: status, completene
 - search_flights: named routes and dates. A metro code (LON, NYC, PAR, TYO)
   expands to its member airports on one-way and round-trip routes. One metro
   call sends at most 18 provider queries; a larger plan is rejected before
-  anything is fetched. A route whose ends are the same metro is rejected. A successful query may carry `recommendation` (none when
+  anything is fetched. A route whose ends are the same metro is rejected. One-way
+  searches also take depart_before, arrive_after, less_emissions, and
+  hide_separate_tickets; fetch auto or sweep sends the clock, duration, layover,
+  price-cap, and these two options to the page, and the page must echo each one.
+  exclude_basic_economy is refused on every path. A successful query may carry `recommendation` (none when
   the provider returned nothing): a pick that respects named requirements
   (`relaxed_requirements` lists any it relaxed), a varied shortlist, and
   highlights/tradeoffs from returned fields only. Additive; `offers` unchanged.
@@ -119,7 +123,8 @@ Do not invent IATA, gl, or ISO 4217. Viajante does not convert.
 
 ## Bags
 
-Unnamed baggage_buffer is 0. Prefer bags / carry_on on the shopping request.
+Unnamed baggage_buffer is 0. carry_on rides the shopping request and is verified on
+the page; checked bags are refused before any request.
 Do not invent a bag fee.
 
 ## Python

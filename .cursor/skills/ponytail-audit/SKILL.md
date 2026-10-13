@@ -15,4 +15,4 @@ Output one line per finding: `<tag> <what to cut>. <replacement>. [path]`.
 End with `net: -<N> lines, -<M> deps possible.`
 Nothing to cut: `Lean already. Ship.`
 
-Do not delete `tests/prompts/`, JSON contract keys, or fetch pacing.
+Do not delete JSON contract keys, fetch pacing, or the offline bench gate (`bench-baseline.json`, `tests/bench/`).

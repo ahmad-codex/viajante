@@ -59,6 +59,7 @@ from viajante.mcp_handlers import (
 )
 from viajante.models import EmptyReason
 from viajante.runtime import get_runtime_info as runtime_info
+from viajante.runtime import package_version
 from viajante.watch import price_history_tool, watch_price_tool
 
 _T = TypeVar("_T")
@@ -532,7 +533,9 @@ def build_server():
             "resources/templates/list",
         )
     }
-    server = ViajanteServer("viajante", instructions=_HELP, cache_hints=cache_hints)
+    server = ViajanteServer(
+        "viajante", instructions=_HELP, cache_hints=cache_hints, version=package_version()
+    )
 
     # Client-visible types that differ from the handler's annotation. tools/list pins these:
     # the deadline and room_rates validators are strict, and the balances list has no item type.

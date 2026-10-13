@@ -42,5 +42,5 @@ Read the task and the code it touches first, then climb.
 - Deletion over addition. Boring over clever.
 - Fewest files possible. Shortest working diff wins after you understand the problem.
 - Do not invent a fare, typical, token, bag fee, or FX table.
-- Compare bags with `--bags` / `--carry-on` on the shopping request, not a
-  default numeric buffer.
+- Request a carry-on with `--carry-on` on the shopping request, not a default
+  numeric buffer. Checked `--bags` is refused on the public page.

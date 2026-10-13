@@ -407,6 +407,11 @@ improvement loops.
 - **Unconfirmed money fields stay out.** Google base/tax/fee breakdown
   (`record[6][2][44]`) needs provider evidence. Caller-named exchange rates
   need a design decision; neither is implemented.
+- **A time echo proves presence, not range.** The page's time chip (`Times, Selected`)
+  is checked only for presence. A clock bound the page loosened is harmless (the local
+  filter drops the extra rows). A tighter one could drop rows the local filter keeps,
+  and nothing in the echo reveals it. Price, duration, and layover echoes are checked
+  for range; the emissions and separate-ticket echoes are checked for presence.
 - **Detail mode cannot price return legs**; `auto` routes packaged trips to
   sweep for that reason.
 - **Booking.com has no HTTP path**; it needs Playwright and is slow by design.
