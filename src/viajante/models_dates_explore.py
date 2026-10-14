@@ -9,7 +9,6 @@ from typing import Literal, Mapping, Optional, Sequence, Tuple
 
 from viajante.models_common import (
     _VS_TYPICAL,
-    RT_WINDOW_OUTBOUND_LIMIT,
     EmptyReason,
     SearchCoverage,
     SearchError,
@@ -227,11 +226,7 @@ class DateCalendarReport:
                 SearchCoverage(
                     scope={
                         "kind": "date_window",
-                        **(
-                            {"public_page_outbound_limit": RT_WINDOW_OUTBOUND_LIMIT}
-                            if scope_bound
-                            else {}
-                        ),
+                        **({"public_page_outbound_limit": 8} if scope_bound else {}),
                         "from": self.start_date.isoformat(),
                         "to": self.end_date.isoformat(),
                     },
