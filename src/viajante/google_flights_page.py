@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
 import re
-import threading
-from typing import Iterator, Optional
+from typing import Optional
 
 from selectolax.lexbor import LexborHTMLParser
 
@@ -15,33 +13,6 @@ from viajante.google_flights_rpc import CompactParseMiss, RawFlightCard, parse_s
 _CALL = re.compile(r"AF_initDataCallback\s*\(\s*\{")
 _IDENTIFIER = re.compile(r"[$A-Za-z_][$\w]*")
 _JSON = json.JSONDecoder()
-_SHARED = threading.local()
-
-
-@contextlib.contextmanager
-def shared_page_tree(html: str) -> Iterator[None]:
-    """Let every page check in this block reuse one HTML tree for ``html``.
-
-    Building the tree is most of a public page's parse cost, and the echo checks and the
-    ds:1 extraction read the same document. Only the exact string object passed here is
-    shared; any other page is parsed as before.
-    """
-    previous = getattr(_SHARED, "slot", None)
-    _SHARED.slot = [html, None]
-    try:
-        yield
-    finally:
-        _SHARED.slot = previous
-
-
-def page_tree(html: str) -> LexborHTMLParser:
-    """The HTML tree for ``html``, built once inside a ``shared_page_tree`` block."""
-    slot = getattr(_SHARED, "slot", None)
-    if slot is None or slot[0] is not html:
-        return LexborHTMLParser(html)
-    if slot[1] is None:
-        slot[1] = LexborHTMLParser(html)
-    return slot[1]
 
 
 def _skip_space(source: str, index: int) -> int:
@@ -69,19 +40,14 @@ def _read_string(source: str, index: int) -> tuple[str, int]:
     raise ValueError("unterminated string")
 
 
-def _skip_value(source: str, index: int) -> tuple[object, int]:
-    """Value and end of one callback property value.
-
-    JSON is decoded once in C and returned as an object. Other JS is scanned and returned as
-    its text, which the caller may still have to reject. Unquoted JSON values are never
-    strings, so a returned ``str`` always means scanned JS.
-    """
+def _skip_value(source: str, index: int) -> tuple[str, int]:
+    """Text and end of one callback property value. JSON is taken in C; other JS is scanned."""
     try:
-        value, end = _JSON.raw_decode(source, index)
+        _, end = _JSON.raw_decode(source, index)
     except ValueError:
         pass
     else:
-        return value, end
+        return source[index:end], end
     start = index
     stack: list[str] = []
     pairs = {"[": "]", "{": "}", "(": ")"}
@@ -105,10 +71,10 @@ def _skip_value(source: str, index: int) -> tuple[object, int]:
     return source[start:index].strip(), index
 
 
-def _callback_properties(source: str, index: int) -> tuple[Optional[str], object]:
+def _callback_properties(source: str, index: int) -> tuple[Optional[str], Optional[str]]:
     """Top-level key and data of a callback object literal, read from just after its "{"."""
     key_value: Optional[str] = None
-    data_value: object = None
+    data_value: Optional[str] = None
     while True:
         index = _skip_space(source, index)
         if index >= len(source):
@@ -152,11 +118,10 @@ def _callback_properties(source: str, index: int) -> tuple[Optional[str], object
 def _ds1_data_in(script: str) -> Optional[list]:
     for match in _CALL.finditer(script):
         try:
-            key, data = _callback_properties(script, match.end())
-            if key != "ds:1" or data is None:
+            key, raw_data = _callback_properties(script, match.end())
+            if key != "ds:1" or raw_data is None:
                 continue
-            if isinstance(data, str):
-                data = json.loads(data)
+            data = json.loads(raw_data)
         except ValueError:
             continue
         if isinstance(data, list):
@@ -166,7 +131,7 @@ def _ds1_data_in(script: str) -> Optional[list]:
 
 def extract_ds1_data(html: str) -> list:
     """Extract the balanced JSON data array for the page's ds:1 callback."""
-    root = page_tree(html)
+    root = LexborHTMLParser(html)
     for node in root.css("script"):
         if "ds:1" not in (node.attributes.get("class") or "").split():
             continue
