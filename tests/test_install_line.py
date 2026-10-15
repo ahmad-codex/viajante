@@ -21,10 +21,6 @@ COPIES = (
     ".cursor/skills/viajante/SKILL.md",
     "landing/index.html",
 )
-# The landing copy-message names only the npx install. The order rule applies to a copy
-# that names both forms, so this one is checked for npx alone.
-NPX_ONLY = {"landing/index.html"}
-
 # The `-p` lookahead skips the CLI line `npx -y -p @viajante/mcp viajante airports`.
 NPX = re.compile(r"npx\b(?![^\n]*?\s-p\s)[\s\S]{0,60}?@viajante/mcp\b")
 UVX = re.compile(r"uvx\b[\s\S]{0,120}?viajante\[mcp\][\s\S]{0,40}?viajante-mcp\b")
@@ -39,8 +35,6 @@ class InstallLineAgreementTest(unittest.TestCase):
                 if npx is None:
                     self.fail("primary `npx -y @viajante/mcp` install is missing")
                 self.assertNotIn("@viajante/mcp@", text, "the install line must not pin a version")
-                if rel in NPX_ONLY:
-                    continue
                 uvx = UVX.search(text)
                 if uvx is None:
                     self.fail("no-Node `uvx --from viajante[mcp] viajante-mcp` is missing")
