@@ -53,10 +53,6 @@ SWEEP_RETRY_BACKOFF_SECONDS = 0.05
 # Client-side cap on concurrent GETs per batch. Not a Google limit: its HTTP/2 server
 # advertises 100 streams. Not measured against throttling. Dates fallback is at most 31 days.
 _SWEEP_STREAMS = 8
-HTTP_HEADERS = {
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-}
 BLOCK_URL_MARKERS = ("consent.google", "/sorry/", "ipv4.google.com/sorry")
 BLOCK_BODY_MARKERS = (
     "our systems have detected unusual traffic",
@@ -384,7 +380,6 @@ class ChromeSweepClient:
 
         config = get_sweep_config()
         self._streams = config.concurrency
-        self.sweep_mode = config.mode
         curl_requests = _curl_requests()
         self._asyncio = asyncio
         self._proxied = _normalize_proxy(proxy) is not None
