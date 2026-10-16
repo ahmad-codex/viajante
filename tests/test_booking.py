@@ -275,8 +275,7 @@ class BookingHotelsSourceTests(unittest.TestCase):
         self.assertEqual(page.wait_timeouts, [])
 
     def test_control_that_stays_on_screen_costs_at_most_the_old_settle(self) -> None:
-        # Worst case is unchanged: a control that never hides is waited on for the
-        # same 800 ms as before, and the click still counts as dismissed.
+        # A control that never hides is waited on for the full 800 ms, and the click still counts.
         button = FakeLocator(count=1, visible=True, wait_error=TimeoutError("still visible"))
         page = FakePage(locators={CONSENT_SELECTORS[0]: button})
 

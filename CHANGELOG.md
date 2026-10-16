@@ -9,29 +9,6 @@ history up to commit 6ee0fb7.
 
 ## [Unreleased]
 
-### Changed
-
-- The landing page no longer waits for the Google Fonts stylesheet before its
-  first paint. The page shows the system font and swaps to Figtree when the
-  stylesheet arrives. With that stylesheet held for 600 ms in headless Chromium,
-  first contentful paint went from 660 ms to 56 ms.
-- Booking.com searches no longer pay the full 800 ms settle after every consent
-  or sign-in popup click. The search waits only until that control leaves the
-  page, up to the same 800 ms. A control that stays on screen costs what it did
-  before. Two dismissals went from 1.7 s to 0.3 s in headless Chromium on a stub
-  page.
-- Round-trip date windows (`search_dates`, and `search_flex` with a stay) check at most
-  three outbound choices per day, down from eight, and report that bound as
-  `public_page_outbound_limit`. Each chunk of days sends one batch of return pages
-  instead of one batch per day, so the sweep's streams stay full. On a fixture window of
-  31 days, simulated provider time fell from about 54 s to about 23 s, and local CPU fell
-  from about 7.7 s to about 3.2 s. Flight round trips keep eight choices and only change
-  in batching.
-- Public Google Flights results pages are parsed into one HTML tree per fetch,
-  not two or three, and the ds:1 data is decoded once. On a fixture sweep of 31
-  one-way queries, local CPU fell from about 1.0 s to about 0.4 s. The same cards
-  come back, and tests pin the single tree build.
-
 ## [1.5.1] - 2026-10-13
 
 ### Added
@@ -57,6 +34,24 @@ history up to commit 6ee0fb7.
   `markup_drift` after a 20 s probe, not a 60 s timeout retried three times.
 - The Google cooldown after a 429 is a fixed 2 minutes, or the named `Retry-After`
   up to 30 minutes. It no longer doubles on each repeat limit.
+- The landing page no longer waits for the Google Fonts stylesheet before its
+  first paint. The page shows the system font and swaps to Figtree when the
+  stylesheet arrives. With that stylesheet held for 600 ms in headless Chromium,
+  first contentful paint went from 660 ms to 56 ms.
+- Booking.com searches no longer pay the full 800 ms settle after every consent
+  or sign-in popup click. The search waits only until that control leaves the
+  page, up to the same 800 ms. A control that stays on screen costs what it did
+  before. Two dismissals went from 1.7 s to 0.3 s in headless Chromium on a stub
+  page.
+- Public Google Flights results pages are parsed into one HTML tree per fetch,
+  not two or three, and the ds:1 data is decoded once. On a fixture sweep of 31
+  one-way queries, local CPU fell from about 1.0 s to about 0.35 s. The same cards
+  come back, and tests pin the single tree build.
+- Round-trip date windows (`search_dates`, and `search_flex` with a stay) send one
+  batch of return pages per chunk of days instead of one batch per day, so the
+  sweep's streams stay full. The rows are the same as before. On a fixture window
+  of 31 days, simulated provider time fell from about 54 s to about 47 s. Local
+  timing is not part of this figure.
 
 ### Fixed
 
@@ -69,7 +64,6 @@ history up to commit 6ee0fb7.
   price checked bags. Only `--carry-on` rides the request.
 - Four CLI tests used a departure date that is now in the past.
 - The MCP `initialize` response reports the viajante version; it was blank.
-
 
 ## [1.5.0] - 2026-10-08
 

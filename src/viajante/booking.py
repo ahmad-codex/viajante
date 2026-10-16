@@ -118,8 +118,7 @@ class BookingHotelsSource:
                 button = page.locator(selector).first
                 if button.count() > 0 and button.is_visible():
                     button.click(timeout=OVERLAY_CLICK_TIMEOUT_MS)
-                    # Wait only while the clicked control stays on screen, never past the old
-                    # fixed settle. A control that closes at once no longer costs the full wait.
+                    # Wait only while the clicked control stays on screen, bounded by the settle.
                     with contextlib.suppress(Exception):
                         button.wait_for(state="hidden", timeout=OVERLAY_SETTLE_MS)
                     return True

@@ -16,7 +16,6 @@ from viajante.dates import calendar_trip, search_dates
 from viajante.google_flights import GoogleFlightsBlocked, SweepHttpResponse
 from viajante.google_flights_public import PublicGoogleFlightsHttpSource
 from viajante.models import FlightQuery
-from viajante.models_common import RT_WINDOW_OUTBOUND_LIMIT
 from viajante.parsers import parse_price
 from viajante.ratelimit import (
     GOOGLE_RATE_LIMIT_FILE,
@@ -211,25 +210,21 @@ class PublicRoundTripDateBatchTests(unittest.TestCase):
         self.assertEqual(batch_report.days[-1].price, 530)
         self.assertTrue(all(row.status == "ok" and row.scope_bound for row in batch_report.days))
         self.assertEqual(sorted(serial.urls), sorted(batch.urls))
-        # Each chunk of days: its outbound boards, then every day's three return choices.
-        self.assertEqual(len(batch.urls), 31 + 31 * RT_WINDOW_OUTBOUND_LIMIT)
+        # Each chunk of days: its outbound boards, then every day's return choices.
+        self.assertEqual(len(batch.urls), 31 + 31 * 8)
         expected_batches: list[list[str]] = []
         for start in range(0, 31, CONCURRENCY):
             days = range(start, min(start + CONCURRENCY, 31))
             expected_batches.append(pages.outbound_urls[start : start + CONCURRENCY])
             expected_batches.append(
-                [
-                    url
-                    for day in days
-                    for url in pages.return_urls[day * 8 : day * 8 + RT_WINDOW_OUTBOUND_LIMIT]
-                ]
+                [url for day in days for url in pages.return_urls[day * 8 : day * 8 + 8]]
             )
         self.assertEqual(batch.batches, expected_batches)
         self.assertEqual(batch.batches[0], pages.outbound_urls[:CONCURRENCY])
         self.assertEqual(len(batch.batches), 2 * 4)
-        # Waves are the sweep's eight-stream slots: 4 outbound waves, then 3 for a full chunk's
-        # 24 returns and 3 for the last chunk's 21.
-        self.assertEqual(batch.waves, 4 + 3 + 3 + 3 + 3)
+        # Waves are the sweep's eight-stream slots. A full chunk is one outbound wave and eight
+        # return waves (64 returns); the last chunk of seven days is one outbound and seven.
+        self.assertEqual(batch.waves, 3 * (1 + 8) + (1 + 7))
         self.assertLessEqual(max(batch.wave_sizes), CONCURRENCY)
         self.assertEqual(batch.timestamps, sorted(batch.timestamps))
         self.assertEqual(batch.timestamps[0], batch.timestamps[CONCURRENCY - 1])
@@ -243,28 +238,24 @@ class PublicRoundTripDateBatchTests(unittest.TestCase):
             chunk_days = min(CONCURRENCY, 31 - chunk * CONCURRENCY)
             # A day is reported once its chunk's return batch has gone out: all earlier
             # chunks, this chunk's outbound boards, and its returns.
-            per_day = 1 + RT_WINDOW_OUTBOUND_LIMIT
+            per_day = 1 + 8
             expected = chunk * CONCURRENCY * per_day + chunk_days * per_day
             self.assertEqual(line, f"[{index + 1}/31] HAN -> SIN {day.isoformat()}")
             self.assertEqual(sent, expected)
 
-    def test_batch_keeps_the_window_limit_of_returns_and_matches_serial_cards(self) -> None:
+    def test_batch_matches_serial_cards_for_every_return_choice(self) -> None:
         pages = _Pages(1, 10)
         serial = _SerialClient(pages)
         batch = _BatchClient(pages)
         serial_report, _serial_sleeps = _search(serial, pages)
         batch_report, _batch_sleeps = _search(batch, pages)
 
-        kept = pages.return_urls[:RT_WINDOW_OUTBOUND_LIMIT]
         self.assertEqual(_view(serial_report), _view(batch_report))
-        self.assertEqual(batch.batches[1], kept)
+        self.assertEqual(batch.batches[1], pages.return_urls)
         self.assertEqual(len(pages.return_urls), 8)
         self.assertEqual(sorted(serial.urls), sorted(batch.urls))
-        self.assertTrue(set(pages.return_urls[RT_WINDOW_OUTBOUND_LIMIT:]).isdisjoint(batch.urls))
         self.assertEqual(batch_report.days[0].price, 500)
-        self.assertEqual(
-            batch_report.coverage.scope["public_page_outbound_limit"], RT_WINDOW_OUTBOUND_LIMIT
-        )
+        self.assertEqual(batch_report.coverage.scope["public_page_outbound_limit"], 8)
 
     def test_failed_return_page_matches_the_serial_partial(self) -> None:
         pages = _Pages(1, 2, bad_echo={(0, 1)})

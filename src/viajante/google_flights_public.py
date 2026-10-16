@@ -55,7 +55,6 @@ from viajante.models import (
     SearchErrorCode,
     Trip,
 )
-from viajante.models_common import RT_WINDOW_OUTBOUND_LIMIT
 from viajante.orchestration import classify_failure as classify_provider_failure
 from viajante.parsers import parse_price
 from viajante.ratelimit import (
@@ -408,7 +407,7 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
                 self._stopped_error = exc
             raise
         html = response.text
-        # The context, ds:1 and carrier checks all read this page: parse its tree once.
+        # The context, ds:1 and carrier checks all read this page.
         with shared_page_tree(html):
             if trip is not None:
                 self._verify_context(html, trip)
@@ -538,11 +537,8 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
             and "round trip" in text
         )
 
-    # Set only while a round-trip date window runs its serial fallback day by day.
-    _window_candidates: int | None = None
-
     def fetch(self, trip: Trip) -> tuple[RawFlightCard, ...]:
-        return self._fetch(trip, self._window_candidates or MAX_PUBLIC_OUTBOUNDS)
+        return self._fetch(trip, MAX_PUBLIC_OUTBOUNDS)
 
     def _fetch(self, trip: Trip, candidates: int) -> tuple[RawFlightCard, ...]:
         _validate_capabilities(trip)
@@ -734,23 +730,19 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
             self._serial_round_trip_window(trips, on_day)
             return
         self._fill_round_trip_batch(
-            client, trips, [None] * len(trips), on_day, RT_WINDOW_OUTBOUND_LIMIT
+            client, trips, [None] * len(trips), on_day, MAX_PUBLIC_OUTBOUNDS
         )
 
     def _serial_round_trip_window(self, trips: Sequence[RoundTrip], on_day) -> None:
-        self._window_candidates = RT_WINDOW_OUTBOUND_LIMIT
-        try:
-            for index, trip in enumerate(trips):
-                checkpoint()
-                try:
-                    result: object = self.fetch(trip)
-                except SearchDeadline:
-                    raise
-                except Exception as exc:
-                    result = exc
-                on_day(index, result)
-        finally:
-            self._window_candidates = None
+        for index, trip in enumerate(trips):
+            checkpoint()
+            try:
+                result: object = self.fetch(trip)
+            except SearchDeadline:
+                raise
+            except Exception as exc:
+                result = exc
+            on_day(index, result)
 
     def _fill_round_trip_batch(
         self,
@@ -760,10 +752,8 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
         on_day,
         candidates: int = MAX_PUBLIC_OUTBOUNDS,
     ):
-        # Chunks of sweep-concurrency days. Each chunk sends one outbound batch, then one
-        # return batch for all of its days. The sweep pipelines a batch through its streams,
-        # so one day's slow return no longer holds up the next day. A block still stops the
-        # sends that have not gone out, and the days after it are reported as stopped.
+        # Chunks of sweep-concurrency days: one outbound batch, then one return batch per chunk.
+        # A block stops the sends that have not gone out; the days after it are reported stopped.
         chunk_size = get_sweep_config().concurrency
         for index, trip in enumerate(trips):
             try:
