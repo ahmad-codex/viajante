@@ -41,13 +41,8 @@ history up to commit 6ee0fb7.
 - Public Google Flights results pages are parsed into one HTML tree per fetch,
   not two or three, and the ds:1 data is decoded once. On a fixture sweep of 31
   one-way queries, local CPU fell from about 1.0 s to about 0.35 s. The same cards
-  come back, and tests pin the single tree build. The same check reuses one
-  result for the same response instead of rescanning it.
-- Round-trip date windows (`search_dates`, and `search_flex` with a stay) send one
-  batch of return pages per chunk of days instead of one batch per day, so the
-  sweep's streams stay full. The rows are the same as before. On a fixture window
-  of 31 days, simulated provider time fell from about 54 s to about 47 s. Local
-  timing is not part of this figure.
+  come back, and tests pin the single tree build. The block check runs once per
+  response, not once per caller.
 
 ### Fixed
 
