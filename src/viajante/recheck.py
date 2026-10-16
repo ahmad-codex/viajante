@@ -387,7 +387,7 @@ class _Prepared:
     basis: str
     missing: list[str]
     source: str
-    # The legs previous times are read from: the ledger's offer when it owns the caller's.
+    # Legs that supply the previous times: the ledger's copy when it matches the caller's offer.
     reference: Mapping[str, Any]
     price_cap: Optional[int]
     query: Mapping[str, Any]

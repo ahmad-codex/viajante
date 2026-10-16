@@ -158,7 +158,6 @@ class ToolMetadataTests(_StateDir):
         self.assertEqual(set(self.tools), NETWORK_TOOLS | LOCAL_TOOLS)
 
     def test_server_info_carries_the_package_version(self) -> None:
-        # initialize serverInfo.version was blank until the server passed its version.
         self.assertEqual(self.server.version, package_version())
 
     def test_every_tool_has_a_title_and_annotations(self) -> None:

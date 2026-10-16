@@ -217,8 +217,8 @@ def _stay_total(record: list[Any]) -> Optional[str]:
         return None
     if not isinstance(pair, list) or not pair:
         return None
-    # Slot 9 is usually a [?, stay-total] pair; live compact bodies now
-    # send a bare single-element ["JP¥12,321"] list instead. The first element
+    # Slot 9 is usually a [?, stay-total] pair, or a bare single-element
+    # ["JP¥12,321"] list in live compact bodies. The first element
     # is only valid for an exactly one-element list: in a pair slot it
     # is a nightly-ish figure that must never stand in for the total.
     candidates: list[Any] = []

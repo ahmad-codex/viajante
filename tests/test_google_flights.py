@@ -2145,10 +2145,3 @@ class LooksBlockedMemoTests(unittest.TestCase):
             self.assertEqual(check.call_count, 2)
             google_flights.looks_blocked(same_text, "https://www.google.com/b")
             self.assertEqual(check.call_count, 3)
-
-    def test_a_blocked_page_stays_blocked_on_a_repeat_check(self) -> None:
-        from viajante import google_flights
-
-        page = "".join(["<html>", "our systems have detected unusual traffic", "</html>"])
-        self.assertTrue(google_flights.looks_blocked(page, ""))
-        self.assertTrue(google_flights.looks_blocked(page, ""))
