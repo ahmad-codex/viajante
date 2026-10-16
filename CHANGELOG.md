@@ -38,15 +38,11 @@ history up to commit 6ee0fb7.
   first paint. The page shows the system font and swaps to Figtree when the
   stylesheet arrives. With that stylesheet held for 600 ms in headless Chromium,
   first contentful paint went from 660 ms to 56 ms.
-- Booking.com searches no longer pay the full 800 ms settle after every consent
-  or sign-in popup click. The search waits only until that control leaves the
-  page, up to the same 800 ms. A control that stays on screen costs what it did
-  before. Two dismissals went from 1.7 s to 0.3 s in headless Chromium on a stub
-  page.
 - Public Google Flights results pages are parsed into one HTML tree per fetch,
   not two or three, and the ds:1 data is decoded once. On a fixture sweep of 31
   one-way queries, local CPU fell from about 1.0 s to about 0.35 s. The same cards
-  come back, and tests pin the single tree build.
+  come back, and tests pin the single tree build. The same check reuses one
+  result for the same response instead of rescanning it.
 - Round-trip date windows (`search_dates`, and `search_flex` with a stay) send one
   batch of return pages per chunk of days instead of one batch per day, so the
   sweep's streams stay full. The rows are the same as before. On a fixture window
