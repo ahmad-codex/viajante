@@ -27,6 +27,7 @@ from viajante.google_flights_detail import (
     parse_flight_cards,
     parse_http_flight_cards,
 )
+from viajante.google_flights_page import extract_ds1_data, price_insight_from_page
 from viajante.google_flights_rpc import (
     EmptyShoppingResults,
     ShoppingRejected,
@@ -63,6 +64,7 @@ REQUIRED_FIXTURE_NAMES = frozenset(
         "cards-best.html",
         "cards-http.html",
         "cards-empty.html",
+        "cards-insight.html",
     }
 )
 
@@ -87,6 +89,7 @@ MIN_FILE_BYTES: Mapping[str, int] = {
     "cards-best.html": 800,
     "cards-http.html": 350,
     "cards-empty.html": 60,
+    "cards-insight.html": 600,
 }
 
 
@@ -219,7 +222,12 @@ def parse_fixture(kind: str, text: str) -> int:
             return 0
         raise BenchIntegrityError("shopping_rejected fixture must raise ShoppingRejected")
     if kind == "html":
-        return len(parse_flight_cards(text))
+        cards = parse_flight_cards(text)
+        if "Prices are currently" in text:
+            insight, error = price_insight_from_page(text, extract_ds1_data(text), currency="EUR")
+            if error is not None or insight is None:
+                raise BenchIntegrityError(f"{kind} fixture did not decode a verified price insight")
+        return len(cards)
     if kind == "html_http":
         return len(parse_http_flight_cards(text))
     if kind == "html_empty":

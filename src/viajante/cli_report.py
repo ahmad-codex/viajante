@@ -29,6 +29,7 @@ from viajante.models import (
     LodgingKind,
     MultiCity,
     NearbyDates,
+    PriceInsight,
     QueryFailure,
     QuerySuccess,
     RawJourneyLeg,
@@ -143,6 +144,30 @@ def _format_compare_side(side: StopsCompareSide, currency: str) -> str:
         f"{format_money(side.price, currency)}  {duration}  {_format_stops_with_layover(side)}  "
         f"{_format_airline(side.airline)}"
     )
+
+
+def format_price_insight(insight: Optional[PriceInsight]) -> str:
+    """One line restating Google's level, range, and lowest. Empty when unverified."""
+    if insight is None:
+        return ""
+    currency = insight.currency
+    parts = [f"Google price level: {insight.level}"]
+    if insight.typical_range is not None:
+        low, high = insight.typical_range
+        parts.append(f"typical {format_money(low, currency)}–{format_money(high, currency)}")
+    if insight.lowest is not None:
+        parts.append(f"lowest {format_money(insight.lowest, currency)}")
+    lines = ["  " + " · ".join(parts)]
+    if insight.history:
+        prices = [price for _day, price in insight.history]
+        last_day, last_price = insight.history[-1]
+        lines.append(
+            "  Price history: "
+            f"min {format_money(min(prices), currency)} · "
+            f"max {format_money(max(prices), currency)} · "
+            f"last {format_money(last_price, currency)} ({last_day})"
+        )
+    return "\n".join(lines)
 
 
 def format_stops_compare(compare: StopsCompare, currency: str) -> str:
@@ -346,6 +371,10 @@ def _print_report(report, *, sort: FlightSort = "ranked") -> None:
     currency = report.currency
     for result in report.queries:
         print(_query_header(result.query))
+        if isinstance(result, QuerySuccess):
+            insight_line = format_price_insight(result.price_insight)
+            if insight_line:
+                print(insight_line)
         query_url = _google_flights_url_for(
             result.query,
             currency=currency,

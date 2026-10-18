@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
-from typing import Any, Callable, Optional, TypeVar
+from datetime import date, datetime, timezone
+from typing import Any, Callable, Literal, Optional, TypeVar
 from urllib.parse import parse_qs
 
 from viajante.airports import airport_geo
 from viajante.models import RawJourneyLeg, RawLayover, RawSegment
+from viajante.models_flights import PriceInsight
 from viajante.parsers import normalize_clock
 
 _ANTI_XSSI = ")]}'"
@@ -98,6 +100,99 @@ def parse_shopping_data(data: object, *, currency: str) -> tuple[RawFlightCard, 
     if not cards:
         raise UnpricedShoppingResults("itineraries had no priced offers")
     return cards
+
+
+# Confirmed on the public results page: 1 low, 2/3/4 typical, 5 high.
+# Any other code is unconfirmed and is not given a level.
+_LEVEL_BY_CODE: dict[int, Literal["low", "typical", "high"]] = {
+    1: "low",
+    2: "typical",
+    3: "typical",
+    4: "typical",
+    5: "high",
+}
+
+
+def _insight_slot(data: object) -> Optional[list]:
+    if isinstance(data, list) and len(data) > 5 and isinstance(data[5], list):
+        return data[5]
+    return None
+
+
+def price_insight_code(data: object) -> Optional[int]:
+    """Level code at ``data[5][0]`` when that slot is an int, else None."""
+    slot = _insight_slot(data)
+    if not slot:
+        return None
+    code = slot[0]
+    if isinstance(code, bool) or not isinstance(code, int):
+        return None
+    return code
+
+
+def _money(value: object) -> Optional[float]:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if not math.isfinite(value) or value < 0:
+        return None
+    return float(value)
+
+
+def _pair_amount(value: object) -> Optional[float]:
+    if not isinstance(value, list) or len(value) < 2:
+        return None
+    return _money(value[1])
+
+
+def _history_points(value: object) -> Optional[tuple[tuple[str, float], ...]]:
+    # ponytail: each stamp is an origin-local midnight as epoch ms. The date is
+    # that instant's UTC calendar day, so a zone ahead of UTC lands on the
+    # previous UTC date. Upgrade: shift by the origin airport's offset first.
+    if not isinstance(value, list) or not value or not isinstance(value[0], list):
+        return None
+    rows = value[0]
+    if not rows:
+        return None
+    points: list[tuple[str, float]] = []
+    for row in rows:
+        if not isinstance(row, list) or len(row) < 2:
+            return None
+        millis, price = row[0], row[1]
+        amount = _money(price)
+        if isinstance(millis, bool) or not isinstance(millis, int) or millis < 0 or amount is None:
+            return None
+        day = datetime.fromtimestamp(millis / 1000, timezone.utc).date().isoformat()
+        points.append((day, amount))
+    return tuple(points)
+
+
+def parse_price_insight(data: object, *, currency: str) -> Optional[PriceInsight]:
+    """Decode the public page's price-insight slot (``data[5]``).
+
+    Unknown codes and wrong types return None. ``page_label`` stays empty here;
+    the heading check fills it. History is included when the slot is well typed.
+    """
+    if not currency:
+        return None
+    slot = _insight_slot(data)
+    code = price_insight_code(data)
+    if slot is None or code is None:
+        return None
+    level = _LEVEL_BY_CODE.get(code)
+    if level is None:
+        return None
+    low = _pair_amount(slot[4] if len(slot) > 4 else None)
+    high = _pair_amount(slot[5] if len(slot) > 5 else None)
+    typical = (low, high) if low is not None and high is not None and low <= high else None
+    history = _history_points(slot[10]) if len(slot) > 10 else None
+    return PriceInsight(
+        level=level,
+        lowest=_pair_amount(slot[1] if len(slot) > 1 else None),
+        typical_range=typical,
+        currency=currency,
+        page_label="",
+        history=history,
+    )
 
 
 def _wrb_data_string(obj: object) -> Optional[str]:

@@ -267,6 +267,7 @@ def search_flights_tool(
     nearby_days: int = 0,
     proxy: Optional[str] = None,
     deadline_seconds: Optional[float] = None,
+    include_price_history: bool = False,
 ) -> Mapping[str, object]:
     plan = parse_flight_plan(
         routes,
@@ -327,6 +328,7 @@ def search_flights_tool(
             country=country,
             proxy=proxy,
             deadline_seconds=deadline_seconds,
+            include_price_history=include_price_history,
             less_emissions=less_emissions,
             hide_separate_tickets=hide_separate_tickets,
             exclude_basic_economy=exclude_basic_economy,

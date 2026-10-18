@@ -39,6 +39,15 @@ history up to commit 6ee0fb7.
   sent, because Google then lists the flights unpriced.
 - `--exclude-basic-economy` is refused on every path: the public page echoes no
   basic-economy filter, so viajante cannot prove it applied.
+- Flight results include `price_insight` from the public Google Flights page
+  already fetched (`level`, `lowest`, `typical_range`, `page_label`). `level`
+  is Google's label (`low`, `typical`, or `high`) for the current price against
+  its typical range. Viajante quotes that label and does not say the price will
+  drop. A missing insight is null. When the heading and the page data disagree,
+  `price_insight` is null and `price_insight_error` is `markup_drift`; the
+  search still succeeds. `--price-history` (MCP `include_price_history`, default
+  off) adds the page's price history. `watch_price` includes the current run's
+  `price_insight`.
 
 ### Changed
 

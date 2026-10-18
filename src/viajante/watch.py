@@ -120,6 +120,26 @@ def save_watch(name: str, kind: str, params: Mapping[str, Any]) -> dict:
     return spec
 
 
+def _query_identity(query: object) -> tuple:
+    if not isinstance(query, Mapping):
+        return ()
+    return tuple(
+        query.get(key) for key in ("trip", "origin", "destination", "departure_date", "return_date")
+    )
+
+
+def _flight_insights(payload: Mapping[str, Any]) -> dict[tuple, tuple[object, object]]:
+    found: dict[tuple, tuple[object, object]] = {}
+    for row in payload.get("queries") or ():
+        if not isinstance(row, Mapping) or row.get("status") != "ok":
+            continue
+        found[_query_identity(row.get("query"))] = (
+            row.get("price_insight"),
+            row.get("price_insight_error"),
+        )
+    return found
+
+
 def _errors(payload: Mapping[str, Any]) -> list[dict]:
     rows = payload.get("queries") or ()
     return [
@@ -163,6 +183,7 @@ def watch_price_tool(
         stored = read_observations(strict=True)
     except UnreadableStateError as exc:
         stored, read_error = [], short_reason(exc)
+    insights = _flight_insights(payload) if spec["kind"] == "flight" else {}
     results = []
     position = {row["id"]: index for index, row in enumerate(stored)}
     stored_ids = {row["id"] for row in written.entries}
@@ -182,6 +203,11 @@ def watch_price_tool(
             "change": change_between(earlier[-1], entry) if earlier else None,
             "recorded": entry["id"] in stored_ids,
         }
+        if spec["kind"] == "flight":
+            insight, insight_error = insights.get(_query_identity(entry["query"]), (None, None))
+            result["price_insight"] = insight
+            if insight_error is not None:
+                result["price_insight_error"] = insight_error
         if read_error is not None:
             result["note"] = "history could not be read; no comparison"
         elif not earlier:

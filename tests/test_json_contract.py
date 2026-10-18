@@ -11,6 +11,7 @@ from viajante.models import (
     FlightOffer,
     FlightQuery,
     MultiCity,
+    PriceInsight,
     QueryFailure,
     QuerySuccess,
     RawJourneyLeg,
@@ -42,7 +43,16 @@ QUERY_KEYS = {
     "adults",
     "cabin",
 }
-SUCCESS_KEYS = {"status", "query", "raw_count", "eligible_count", "offers"}
+SUCCESS_KEYS = {"status", "query", "raw_count", "eligible_count", "offers", "price_insight"}
+INSIGHT_KEYS = {
+    "source",
+    "level",
+    "lowest",
+    "typical_range",
+    "currency",
+    "page_label",
+    "history",
+}
 FAILURE_KEYS = {"status", "query", "error"}
 OFFER_KEYS = {
     "airline",
@@ -154,6 +164,8 @@ class JsonContractTests(unittest.TestCase):
         success, failure = self.data["queries"]
         self.assertEqual(set(success), SUCCESS_KEYS)
         self.assertEqual(set(failure), FAILURE_KEYS)
+        self.assertIsNone(success["price_insight"])
+        self.assertNotIn("price_insight_error", success)
         self.assertEqual(set(success["query"]), QUERY_KEYS | {"google_flights_url"})
         self.assertEqual(set(success["offers"][0]), OFFER_KEYS | {"google_flights_url"})
         self.assertTrue(
@@ -456,6 +468,38 @@ class JsonContractTests(unittest.TestCase):
         self.assertEqual(data["stops_compare"]["nonstop"]["price"], 39.0)
         self.assertEqual(data["stops_compare"]["one_stop"]["price"], 29.0)
         self.assertEqual(data["stops_compare"]["one_stop"]["layover_city"], "OPO")
+
+    def test_price_insight_keys_and_drift_are_additive(self) -> None:
+        query = FlightQuery("JFK", "LHR", date(2026, 9, 1), max_stops=1)
+        insight = PriceInsight(
+            level="typical",
+            lowest=293.0,
+            typical_range=(170.0, 465.0),
+            currency="USD",
+            page_label="Prices are currently typical",
+            history=(("2026-08-17", 300.0),),
+        )
+        data = QuerySuccess(
+            query=query,
+            raw_count=1,
+            eligible_count=0,
+            offers=(),
+            price_insight=insight,
+        ).to_dict(currency="USD")
+        self.assertEqual(set(data["price_insight"]), INSIGHT_KEYS)
+        self.assertEqual(data["price_insight"]["source"], "google_flights")
+        self.assertEqual(data["price_insight"]["history"], [{"date": "2026-08-17", "price": 300.0}])
+        self.assertNotIn("price_insight_error", data)
+        drifted = QuerySuccess(
+            query=query,
+            raw_count=1,
+            eligible_count=0,
+            offers=(),
+            price_insight_error="markup_drift",
+        ).to_dict(currency="USD")
+        self.assertIsNone(drifted["price_insight"])
+        self.assertEqual(drifted["price_insight_error"], "markup_drift")
+        self.assertEqual(set(drifted), SUCCESS_KEYS | {"price_insight_error"})
 
     def test_stops_compare_omits_an_empty_side(self) -> None:
         query = FlightQuery("JFK", "LHR", date(2026, 9, 1), max_stops=1)

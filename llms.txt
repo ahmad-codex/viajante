@@ -43,7 +43,12 @@ Every result (except lookup_airports) opens with an envelope: status, completene
   searches also take depart_before, arrive_after, less_emissions, and
   hide_separate_tickets; fetch auto or sweep sends the clock, duration, layover,
   price-cap, and these two options to the page, and the page must echo each one.
-  exclude_basic_economy is refused on every path. A successful query may carry `recommendation` (none when
+  exclude_basic_economy is refused on every path. A successful query carries `price_insight`
+  when Google's page states a level (`low`, `typical`, or `high`) that matches its heading.
+  That level is Google's comparison with its typical range, not a forecast. Quote the label.
+  `include_price_history` (default false) adds the page's own history; no extra request.
+  A heading that does not match leaves `price_insight` null and `price_insight_error`
+  `markup_drift`; the search still succeeds. A successful query may carry `recommendation` (none when
   the provider returned nothing): a pick that respects named requirements
   (`relaxed_requirements` lists any it relaxed), a varied shortlist, and
   highlights/tradeoffs from returned fields only. Additive; `offers` unchanged.
@@ -92,7 +97,8 @@ Every result (except lookup_airports) opens with an envelope: status, completene
   lowest/highest and change since previous. One observation means no trend. No
   forecast, no currency comparison.
 - watch_price: re-run one saved search_flights/search_hotels query on demand and
-  report the change vs its last observation. No notifications, no scheduler; do
+  report the change vs its last observation. A flight run includes that search's
+  `price_insight`. No notifications, no scheduler; do
   not loop it (Google rate-limits). A cached or failed run records nothing.
 - get_runtime_info: executing package, Python, and hotel schema versions. Offline.
 

@@ -31,7 +31,7 @@ from viajante.google_flights_explore_browser import capture_catalog, explore_ses
 from viajante.google_flights_page import (
     extract_ds1_data,
     page_tree,
-    parse_shopping_page,
+    price_insight_from_page,
     shared_page_tree,
 )
 from viajante.google_flights_rpc import (
@@ -43,12 +43,14 @@ from viajante.google_flights_rpc import (
     explore_request_constraints,
     explore_request_echo,
     parse_explore_catalog,
+    parse_shopping_data,
     raw_rpc_error_status,
 )
 from viajante.models import (
     FlightCabin,
     FlightQuery,
     MultiCity,
+    PriceInsight,
     ProviderShop,
     RawJourneyLeg,
     RoundTrip,
@@ -358,6 +360,7 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
         self.partial_error: BaseException | None = None
         self.scope_bound = False
         self._query_meta: dict[Trip, tuple[BaseException | None, bool]] = {}
+        self._price_insights: dict[Trip, tuple[PriceInsight | None, str | None]] = {}
         self._stopped_error: GoogleFlightsBlocked | None = None
         self._explore_browser = explore_session(
             html_lang=self._html_lang,
@@ -397,7 +400,12 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
         return super()._ensure_client()
 
     def _parse_response(
-        self, response: SweepHttpResponse, url: str, trip: Trip | None = None
+        self,
+        response: SweepHttpResponse,
+        url: str,
+        trip: Trip | None = None,
+        *,
+        capture_insight: bool = False,
     ) -> tuple[RawFlightCard, ...]:
         try:
             raise_for_sweep_response(response, url)
@@ -411,7 +419,8 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
             if trip is not None:
                 self._verify_context(html, trip)
             try:
-                cards = parse_shopping_page(html, currency=self._currency)
+                data = extract_ds1_data(html)
+                cards = parse_shopping_data(data, currency=self._currency)
             except EmptyShoppingResults as exc:
                 if trip is not None:
                     self._verify_carrier_filters(html, (), trip)
@@ -426,6 +435,11 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
             except CompactParseMiss as exc:
                 # Missing bootstrap data cannot prove the provider returned no flights.
                 raise GoogleFlightsMarkupError(str(exc)) from exc
+            if capture_insight and trip is not None:
+                # A bad insight slot must not fail the search that already parsed.
+                self._price_insights[trip] = price_insight_from_page(
+                    html, data, currency=self._currency
+                )
             if trip is not None:
                 self._verify_carrier_filters(html, cards, trip)
             return cards
@@ -514,7 +528,7 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
                 f"{type(exc).__name__}: public-page transport failed before a response",
                 timeout=isinstance(exc, TimeoutError) or "timeout" in type(exc).__name__.casefold(),
             ) from exc
-        cards = self._parse_response(response, url, trip)
+        cards = self._parse_response(response, url, trip, capture_insight=outbound is None)
         return cards, response.text
 
     @staticmethod
@@ -610,6 +624,10 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
 
     def metadata_for(self, trip: Trip):
         return self._query_meta.get(trip, (None, False))
+
+    def price_insight_for(self, trip: Trip) -> tuple[PriceInsight | None, str | None]:
+        """Insight from the results page. Selected-outbound return pages are not read."""
+        return self._price_insights.get(trip, (None, None))
 
     def _read_page_retry(self, trip: Trip, outbound: RawJourneyLeg | None = None):
         try:
@@ -779,7 +797,7 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
                     )
                     continue
                 try:
-                    cards = self._parse_response(response, url, trips[index])
+                    cards = self._parse_response(response, url, trips[index], capture_insight=True)
                     matched = tuple(
                         card for card in cards if _matches_leg(card, trips[index].legs[0])
                     )
@@ -905,7 +923,7 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
         )
         for index, url, response in zip(pending, urls, responses, strict=True):
             try:
-                cards = self._parse_response(response, url, trips[index])
+                cards = self._parse_response(response, url, trips[index], capture_insight=True)
                 matched = tuple(card for card in cards if _matches_leg(card, trips[index].legs[0]))
                 if not matched:
                     raise GoogleFlightsMarkupError(
@@ -932,7 +950,10 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
                 for index, url, response in zip(replay, retry_urls, retried, strict=True):
                     try:
                         cards = self._parse_response(
-                            _replay_response(results[index], response), url, trips[index]
+                            _replay_response(results[index], response),
+                            url,
+                            trips[index],
+                            capture_insight=True,
                         )
                         matched = tuple(
                             card for card in cards if _matches_leg(card, trips[index].legs[0])
