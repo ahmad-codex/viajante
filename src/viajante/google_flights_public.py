@@ -31,6 +31,7 @@ from viajante.google_flights_explore_browser import capture_catalog, explore_ses
 from viajante.google_flights_page import (
     extract_ds1_data,
     page_tree,
+    parse_shopping_page,
     price_insight_from_page,
     shared_page_tree,
 )
@@ -43,7 +44,6 @@ from viajante.google_flights_rpc import (
     explore_request_constraints,
     explore_request_echo,
     parse_explore_catalog,
-    parse_shopping_data,
     raw_rpc_error_status,
 )
 from viajante.models import (
@@ -419,8 +419,7 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
             if trip is not None:
                 self._verify_context(html, trip)
             try:
-                data = extract_ds1_data(html)
-                cards = parse_shopping_data(data, currency=self._currency)
+                cards = parse_shopping_page(html, currency=self._currency)
             except EmptyShoppingResults as exc:
                 if trip is not None:
                     self._verify_carrier_filters(html, (), trip)
@@ -437,9 +436,7 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
                 raise GoogleFlightsMarkupError(str(exc)) from exc
             if capture_insight and trip is not None:
                 # A bad insight slot must not fail the search that already parsed.
-                self._price_insights[trip] = price_insight_from_page(
-                    html, data, currency=self._currency
-                )
+                self._price_insights[trip] = self._insight_from_page(html)
             if trip is not None:
                 self._verify_carrier_filters(html, cards, trip)
             return cards
@@ -628,6 +625,13 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
     def price_insight_for(self, trip: Trip) -> tuple[PriceInsight | None, str | None]:
         """Insight from the results page. Selected-outbound return pages are not read."""
         return self._price_insights.get(trip, (None, None))
+
+    def _insight_from_page(self, html: str) -> tuple[PriceInsight | None, str | None]:
+        try:
+            data = extract_ds1_data(html)
+        except CompactParseMiss:
+            return None, None
+        return price_insight_from_page(html, data, currency=self._currency)
 
     def _read_page_retry(self, trip: Trip, outbound: RawJourneyLeg | None = None):
         try:
