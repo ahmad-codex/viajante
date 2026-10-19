@@ -29,6 +29,13 @@ class NpmShimTests(unittest.TestCase):
         self.assertEqual(pkg["name"], "@viajante/mcp")
         self.assertEqual(pkg["version"], version)
         self.assertEqual(server["version"], version)
+        hermes = ROOT / "integrations" / "hermes"
+        plugin = json.loads((hermes / "plugin.json").read_text(encoding="utf-8"))
+        hermes_mcp = json.loads((hermes / "mcp.json").read_text(encoding="utf-8"))
+        self.assertEqual(plugin["version"], version)
+        self.assertEqual(
+            hermes_mcp["mcpServers"]["viajante"]["args"], ["-y", f"@viajante/mcp@{version}"]
+        )
         self.assertEqual(pkg["bin"]["mcp"], "bin/cli.js")
         self.assertEqual(pkg["bin"]["viajante"], "bin/cli.js")
         self.assertEqual(pkg["bin"]["viajante-mcp"], "bin/cli.js")

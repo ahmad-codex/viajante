@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "viajante": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@viajante/mcp@1.5.1"]
+    }
+  }
+}
