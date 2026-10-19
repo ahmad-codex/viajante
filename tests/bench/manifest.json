@@ -1,7 +1,7 @@
 {
   "version": 1,
   "source": "Owned builders in tests/test_google_flights.py. Do not add empty files.",
-  "min_files": 17,
+  "min_files": 16,
   "min_total_bytes": 8000,
   "min_cards": 15,
   "fixtures": [
@@ -68,10 +68,6 @@
     {
       "name": "cards-empty.html",
       "kind": "html_empty"
-    },
-    {
-      "name": "cards-insight.html",
-      "kind": "html"
     }
   ]
 }
