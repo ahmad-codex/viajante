@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
+from selectolax.lexbor import LexborHTMLParser
+
 import _isolate  # noqa: F401
 from viajante.control import SearchCancelled, SearchDeadline
 from viajante.dates import search_dates, search_flex
@@ -749,7 +751,6 @@ class PublicRoundTripCoverageTests(unittest.TestCase):
 
 class PublicPackageEmptyTests(unittest.TestCase):
     def test_empty_selected_returns_do_not_prove_no_round_trip_flights(self):
-        from viajante.google_flights import GoogleFlightsMarkupError, NoFlightsFound
 
         source = _source()
         query = RoundTrip("HAN", "SIN", OUT, BACK, adults=2, max_stops=0)
@@ -881,8 +882,6 @@ class SharedPageTreeTests(unittest.TestCase):
         )
 
     def test_a_page_parse_builds_its_html_tree_once(self) -> None:
-        from selectolax.lexbor import LexborHTMLParser
-
         html = self._page()
         trip = FlightQuery("MAD", "ICN", OUT, max_stops=1, adults=2)
         url = "https://www.google.com/travel/flights?tfs=shared-tree"
