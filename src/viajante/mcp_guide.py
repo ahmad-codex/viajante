@@ -170,6 +170,18 @@ Offers whose currency differs or is unproven are never price-compared or price-s
 Provider-empty queries carry no recommendation. Round-trip and multi-city packages are never
 relaxed. Fare rules (refund, change) are never in the rows, so the block makes no claim about them.
 
+## Google price level
+
+A successful flights query carries `price_insight`, null when the page has none.
+`price_insight.level` is Google's comparison with its typical range, not a
+forecast. Quote it as Google's label. Never turn it into a promise that the price will drop.
+`level` is `low`, `typical`, or `high`. `typical_range` and `lowest` are the figures on
+that page, in the quote currency. `history` stays null unless `include_price_history`
+is true; those dates and prices are the page's own series. If the page data and the
+heading disagree, `price_insight` is null and `price_insight_error` is `markup_drift`.
+The search still succeeds. A flight `watch_price` result includes that run's
+`price_insight`. The local `price_history` log does not.
+
 ## Public-page transport
 
 Flights auto uses sweep public HTML bootstrap data, not unsigned shopping RPC.
@@ -329,8 +341,10 @@ not empty), with status failed, completeness blocked and error_code history_unre
 report that as "no history".
 
 watch_price re-runs a saved search_flights or search_hotels argument set on demand and reports the
-change since the last observation of the same query and currency. It saves the watch and records
-its observation (even when the global opt-in is off), so it is not read-only. It takes the
+change since the last observation of the same query and currency. A flight run also carries
+that search's `price_insight` (see Google price level). The stored observation log does not.
+It saves the watch and records its observation (even when the global opt-in is off), so it is
+not read-only. It takes the
 one-search lock, the cooldown and the 5-minute cache like any search; its envelope is the inner
 search's, with completeness partial when history could not be read (change is then null). It
 sends no notification and schedules nothing: do not call it in a loop, because Google rate-limits.

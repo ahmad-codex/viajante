@@ -419,6 +419,7 @@ def _run_flights(args: argparse.Namespace) -> int:
             country=args.country,
             proxy=getattr(args, "proxy", None) or None,
             nearby_days=getattr(args, "nearby_days", 0),
+            include_price_history=bool(getattr(args, "price_history", False)),
             **{key: value for key, value in shop.items() if key not in _TRIP_SHOP_FIELDS},
             **_flight_only_filters_from_args(args),
         )
@@ -1536,6 +1537,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_owned_shop_filters(flights)
     _add_flight_only_filters(flights)
+    flights.add_argument(
+        "--price-history",
+        action="store_true",
+        dest="price_history",
+        help=(
+            "Include the price history already on Google's results page. "
+            "No extra request. Off by default"
+        ),
+    )
     _add_split_flags(flights)
     _add_save_flag(flights)
 

@@ -644,7 +644,11 @@ def build_server():
         each one locally. exclude_basic_economy is refused. nearby_days (default 0, off)
         adds a ±N cheapest-fare grid on that search; round trips shift both dates and
         keep the trip length. The grid reuses the date calendar and does not change offers.
-        A successful query may carry
+        A successful query carries
+        price_insight when the page states a level (low, typical, or high) that matches
+        its heading. That level is Google's label for the current price against its
+        typical range, not a forecast. include_price_history adds the page's own price
+        history and is off by default. A successful query may carry
         recommendation:
         evidence, not a verdict. Check relaxed_requirements before calling it a match. After a
         named hub or leisure trunk, search_hidden_city may run once with the same route and

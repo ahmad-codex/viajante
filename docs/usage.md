@@ -254,6 +254,24 @@ Fare rules are never in the provider rows, so each entry says "Fare rules
 (refund, change) not shown"; refundable or flexible fares cannot be required.
 There are no savings claims and no reference prices.
 
+### Google price level
+
+A flights query may include `price_insight` from the same public results page.
+`level` is Google's word (`low`, `typical`, or `high`) for the current lowest
+price against the typical range on that page. Quote that label. Viajante does
+not say whether the price will drop. The text report adds one line when the
+page confirms it:
+
+```
+Google price level: typical · typical 170 USD–465 USD · lowest 293 USD
+```
+
+`--price-history` (MCP `search_flights` `include_price_history`, default off)
+adds `history` from that page and a min/max/last line. No extra request. A
+missing insight is null. When the heading and the page data disagree,
+`price_insight` is null and `price_insight_error` is `markup_drift`; the offers
+still come back. History dates are the UTC date of each timestamp on the page.
+
 ### Choosing a fetch mode
 
 | Mode | Behavior |

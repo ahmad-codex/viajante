@@ -201,6 +201,7 @@ def _run_search(
     inter_query_delay: Callable[[random.Random], float] = inter_query_delay_seconds,
     filters: OfferFilters = NO_OFFER_FILTERS,
     retry_backoff: Callable[[int, random.Random], float] = retry_backoff_seconds,
+    include_price_history: bool = False,
 ) -> SearchReport:
     report_progress = progress or (lambda _: None)
     results: list[QueryResult] = []
@@ -215,6 +216,10 @@ def _run_search(
         recommendation = _recommend(trip, pool, filters, currency=currency, packaged=packaged)
         metadata_for = getattr(source, "metadata_for", None)
         page_error, scope_bound = metadata_for(trip) if callable(metadata_for) else (None, False)
+        insight_for = getattr(source, "price_insight_for", None)
+        insight, insight_error = insight_for(trip) if callable(insight_for) else (None, None)
+        if insight is not None and not include_price_history and insight.history is not None:
+            insight = replace(insight, history=None)
         return QuerySuccess(
             query=trip,
             raw_count=len(cards),
@@ -224,6 +229,8 @@ def _run_search(
             recommendation=recommendation,
             page_errors=(classify_failure(page_error),) if page_error is not None else (),
             scope_bound=scope_bound,
+            price_insight=insight,
+            price_insight_error=insight_error,
         )
 
     def _stamp(result: QueryResult) -> QueryResult:
@@ -387,6 +394,7 @@ def get_flights(
     cancel: Optional[threading.Event] = None,
     deadline_seconds: Optional[float] = None,
     nearby_days: int = 0,
+    include_price_history: bool = False,
 ) -> SearchReport:
     """One-shot flight search from a route spec or trips.
 
@@ -426,6 +434,7 @@ def get_flights(
         "cancel": cancel,
         "deadline_seconds": deadline_seconds,
         "nearby_days": nearby_days,
+        "include_price_history": include_price_history,
     }
 
     def _search(trips: Sequence[Trip]) -> SearchReport:
@@ -637,6 +646,7 @@ def search_flights(
     cancel: Optional[threading.Event] = None,
     deadline_seconds: Optional[float] = None,
     nearby_days: int = 0,
+    include_price_history: bool = False,
 ) -> SearchReport:
     if not queries:
         raise ValueError("at least one query is required")
@@ -727,6 +737,7 @@ def search_flights(
                 inter_query_delay=inter_query_delay,
                 filters=filters,
                 retry_backoff=retry_backoff,
+                include_price_history=include_price_history,
             )
             client = source
             if (
