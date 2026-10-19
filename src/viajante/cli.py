@@ -118,6 +118,7 @@ from viajante.trip import (
 FLIGHTS_EXAMPLES = """\
 Examples:
   viajante flights JFK-LHR:2027-03-15
+  viajante flights JFK-LHR:2027-03-15 --nearby-days 1
   viajante flights BOS-LHR:2027-03-18 --nearby --fetch sweep
   viajante flights JFK-NRT:2027-04-09:2027-04-20
   viajante flights --trip rt LAX-NRT:2027-04-12:2027-04-26 --fetch sweep
@@ -417,6 +418,8 @@ def _run_flights(args: argparse.Namespace) -> int:
             currency=args.currency,
             country=args.country,
             proxy=getattr(args, "proxy", None) or None,
+            nearby_days=getattr(args, "nearby_days", 0),
+            include_price_history=bool(getattr(args, "price_history", False)),
             **{key: value for key, value in shop.items() if key not in _TRIP_SHOP_FIELDS},
             **_flight_only_filters_from_args(args),
         )
@@ -1495,6 +1498,17 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_flight_query_flags(flights)
     _add_nearby_flag(flights)
     flights.add_argument(
+        "--nearby-days",
+        type=int,
+        default=0,
+        metavar="N",
+        help=(
+            "Cheapest fare ±N days around each requested date (default 0, off). "
+            "Round trips shift outbound and return together and keep the trip length. "
+            "Multi-city is omitted. Same public date calendar as dates and flex."
+        ),
+    )
+    flights.add_argument(
         "--top",
         type=int,
         default=DEFAULT_TOP,
@@ -1523,6 +1537,15 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_owned_shop_filters(flights)
     _add_flight_only_filters(flights)
+    flights.add_argument(
+        "--price-history",
+        action="store_true",
+        dest="price_history",
+        help=(
+            "Include the price history already on Google's results page. "
+            "No extra request. Off by default"
+        ),
+    )
     _add_split_flags(flights)
     _add_save_flag(flights)
 

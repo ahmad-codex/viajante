@@ -114,7 +114,7 @@ Run `viajante <command> --help` for options. Add `--save FILE` to write a JSON r
 
 | Command | Purpose |
 | --- | --- |
-| `flights` | Specific routes and dates (`--split-tickets` is opt-in) |
+| `flights` | Specific routes and dates (`--nearby-days` compares ±N days when N is set; `--split-tickets` is opt-in) |
 | `dates` | Cheapest departure day across a window of up to 31 days |
 | `flex` | A few days either side of a target date |
 | `explore` | Destinations from an origin airport |
@@ -169,6 +169,10 @@ that same environment.
   unless you opt out. Google rates 0–5, Booking.com 0–10.
 - **Recommendation.** Flight results may include a short `recommendation`
   block. It adds to the offer list and never replaces it.
+- **Price level.** Flight results may include Google's own price level
+  (`low`, `typical`, or `high`) from the results page already fetched. It is
+  Google's label for that price against its typical range. `--price-history`
+  adds the page's price history. No extra request.
 - **Unknown stays unknown.** Missing fields are left out or marked unknown.
 
 Travel sites change their pages, block requests, and update prices at any time.

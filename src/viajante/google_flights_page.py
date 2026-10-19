@@ -6,11 +6,21 @@ import contextlib
 import json
 import re
 import threading
+from dataclasses import replace
 from typing import Iterator, Optional
 
 from selectolax.lexbor import LexborHTMLParser
 
-from viajante.google_flights_rpc import CompactParseMiss, RawFlightCard, parse_shopping_data
+from viajante.google_flights_rpc import (
+    CompactParseMiss,
+    RawFlightCard,
+    parse_price_insight,
+    parse_shopping_data,
+    price_insight_code,
+)
+from viajante.models_flights import PriceInsight
+
+_LEVEL_WORD = re.compile(r"^Prices are currently (low|typical|high)\b")
 
 _CALL = re.compile(r"AF_initDataCallback\s*\(\s*\{")
 _IDENTIFIER = re.compile(r"[$A-Za-z_][$\w]*")
@@ -179,3 +189,48 @@ def extract_ds1_data(html: str) -> list:
 def parse_shopping_page(html: str, *, currency: str) -> tuple[RawFlightCard, ...]:
     """Parse public HTML shopping results through the owned compact-data decoder."""
     return parse_shopping_data(extract_ds1_data(html), currency=currency)
+
+
+def _current_level_label(html: str) -> Optional[str]:
+    """English "Prices are currently …" heading. ``""`` when several disagree."""
+    root = page_tree(html)
+    found: list[str] = []
+    for node in root.css('[role="heading"]'):
+        text = " ".join(node.text(separator=" ", strip=True).split())
+        if text.startswith("Prices are currently"):
+            found.append(text)
+    if not found:
+        return None
+    if len(set(found)) != 1:
+        return ""
+    return found[0]
+
+
+def price_insight_from_page(
+    html: str, data: object, *, currency: str
+) -> tuple[Optional[PriceInsight], Optional[str]]:
+    """Insight when ``data[5]`` and the rendered heading name the same level.
+
+    No insight on the page is ``(None, None)``. A heading and slot that do not
+    confirm each other is ``(None, "markup_drift")``. This never raises.
+    """
+    try:
+        return _confirmed_price_insight(html, data, currency=currency)
+    except Exception:
+        return None, None
+
+
+def _confirmed_price_insight(
+    html: str, data: object, *, currency: str
+) -> tuple[Optional[PriceInsight], Optional[str]]:
+    label = _current_level_label(html)
+    if label == "":
+        return None, "markup_drift"
+    parsed = parse_price_insight(data, currency=currency)
+    matched = _LEVEL_WORD.match(label) if label else None
+    word = matched.group(1) if matched else None
+    if parsed is not None and word == parsed.level and label:
+        return replace(parsed, page_label=label), None
+    if label is not None or price_insight_code(data) is not None:
+        return None, "markup_drift"
+    return None, None

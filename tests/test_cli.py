@@ -25,6 +25,7 @@ from viajante.models import (
     HotelQuerySuccess,
     HotelSearchReport,
     LodgingKind,
+    PriceInsight,
     PropertyTypeEvidence,
     QueryFailure,
     QuerySuccess,
@@ -176,6 +177,64 @@ class CliTests(unittest.TestCase):
                 code = main(["flights", ROUTE])
                 self.assertEqual(code, 0)
                 printer.assert_called_once()
+
+    def test_price_insight_line_restates_the_page_fields(self) -> None:
+        insight = PriceInsight(
+            level="typical",
+            lowest=26.0,
+            typical_range=(25.0, 75.0),
+            currency="EUR",
+            page_label="Prices are currently typical",
+        )
+        report = SearchReport(
+            searched_at=SEARCHED_AT,
+            currency="EUR",
+            queries=(
+                QuerySuccess(
+                    query=QUERY,
+                    raw_count=1,
+                    eligible_count=1,
+                    offers=(_offer(price=26.0),),
+                    price_insight=insight,
+                ),
+            ),
+        )
+        text = _rendered(report)
+        self.assertIn("Google price level: typical · typical 25 €–75 € · lowest 26 €", text)
+        self.assertNotIn("Price history", text)
+        self.assertNotIn("Google price level", _rendered(_report()))
+        with_history = SearchReport(
+            searched_at=SEARCHED_AT,
+            currency="EUR",
+            queries=(
+                QuerySuccess(
+                    query=QUERY,
+                    raw_count=1,
+                    eligible_count=1,
+                    offers=(_offer(price=26.0),),
+                    price_insight=PriceInsight(
+                        level="typical",
+                        lowest=26.0,
+                        typical_range=(25.0, 75.0),
+                        currency="EUR",
+                        page_label="Prices are currently typical",
+                        history=(("2026-08-17", 36.0), ("2026-10-17", 26.0)),
+                    ),
+                ),
+            ),
+        )
+        history = _rendered(with_history)
+        self.assertIn("Price history: min 26 € · max 36 € · last 26 € (2026-10-17)", history)
+
+    def test_price_history_flag_reaches_the_search(self) -> None:
+        with patch("viajante.cli.search_flights", return_value=_report()) as search:
+            with patch("viajante.cli._print_report"):
+                self.assertEqual(main(["flights", ROUTE]), 0)
+        self.assertIs(search.call_args.kwargs["include_price_history"], False)
+        with patch("viajante.cli.search_flights", return_value=_report()) as search:
+            with patch("viajante.cli._print_report"):
+                self.assertEqual(main(["flights", ROUTE, "--price-history"]), 0)
+        self.assertIs(search.call_args.kwargs["include_price_history"], True)
 
     def test_save_only_when_requested(self) -> None:
         with patch("viajante.cli.search_flights", return_value=_report()):

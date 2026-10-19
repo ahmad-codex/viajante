@@ -28,6 +28,8 @@ from viajante.models import (
     HotelQuerySuccess,
     LodgingKind,
     MultiCity,
+    NearbyDates,
+    PriceInsight,
     QueryFailure,
     QuerySuccess,
     RawJourneyLeg,
@@ -142,6 +144,30 @@ def _format_compare_side(side: StopsCompareSide, currency: str) -> str:
         f"{format_money(side.price, currency)}  {duration}  {_format_stops_with_layover(side)}  "
         f"{_format_airline(side.airline)}"
     )
+
+
+def format_price_insight(insight: Optional[PriceInsight]) -> str:
+    """One line restating Google's level, range, and lowest. Empty when unverified."""
+    if insight is None:
+        return ""
+    currency = insight.currency
+    parts = [f"Google price level: {insight.level}"]
+    if insight.typical_range is not None:
+        low, high = insight.typical_range
+        parts.append(f"typical {format_money(low, currency)}–{format_money(high, currency)}")
+    if insight.lowest is not None:
+        parts.append(f"lowest {format_money(insight.lowest, currency)}")
+    lines = ["  " + " · ".join(parts)]
+    if insight.history:
+        prices = [price for _day, price in insight.history]
+        last_day, last_price = insight.history[-1]
+        lines.append(
+            "  Price history: "
+            f"min {format_money(min(prices), currency)} · "
+            f"max {format_money(max(prices), currency)} · "
+            f"last {format_money(last_price, currency)} ({last_day})"
+        )
+    return "\n".join(lines)
 
 
 def format_stops_compare(compare: StopsCompare, currency: str) -> str:
@@ -313,6 +339,28 @@ def _google_flights_url_for(
     )
 
 
+def _print_nearby_dates(grid: NearbyDates, currency: str) -> None:
+    stay = f", {grid.nights} nights" if grid.nights else ""
+    print(
+        f"  Nearby dates (±{grid.days}{stay}), cheapest fare vs {grid.requested_date.isoformat()}:"
+    )
+    for cell in grid.prices:
+        when = cell.departure_date.isoformat()
+        if cell.return_date is not None:
+            when += f"/{cell.return_date.isoformat()}"
+        offset = f"{cell.offset_days:+d}"
+        if cell.status == "error" and cell.error is not None:
+            print(f"    {when}  {offset}  ERROR: {cell.error.message}")
+            continue
+        if cell.price is None:
+            reason = f"  {cell.empty_reason}" if cell.empty_reason else ""
+            print(f"    {when}  {offset}  —{reason}")
+            continue
+        delta = "0" if cell.delta == 0 else f"{cell.delta:+.0f}"
+        mark = "  cheapest" if cell.cheapest else ""
+        print(f"    {when}  {offset}  {format_money(cell.price, currency)}  {delta}{mark}")
+
+
 def _print_google_flights_url(url: Optional[str], *, indent: str = "    ") -> None:
     if url:
         print(f"{indent}{url}")
@@ -323,6 +371,10 @@ def _print_report(report, *, sort: FlightSort = "ranked") -> None:
     currency = report.currency
     for result in report.queries:
         print(_query_header(result.query))
+        if isinstance(result, QuerySuccess):
+            insight_line = format_price_insight(result.price_insight)
+            if insight_line:
+                print(insight_line)
         query_url = _google_flights_url_for(
             result.query,
             currency=currency,
@@ -357,9 +409,13 @@ def _print_report(report, *, sort: FlightSort = "ranked") -> None:
                 f"eligible: {result.eligible_count}; "
                 f"shown: {len(result.offers)}"
             )
+            if result.nearby_dates is not None:
+                _print_nearby_dates(result.nearby_dates, currency)
         elif isinstance(result, QueryFailure):
             print(f"  ERROR: {result.error.message}")
             _print_google_flights_url(query_url, indent="  ")
+            if result.nearby_dates is not None:
+                _print_nearby_dates(result.nearby_dates, currency)
     _print_best_pairs(report, sort)
     if any_success:
         print(VERIFY_BAGGAGE_LINE)

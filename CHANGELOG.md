@@ -9,9 +9,28 @@ history up to commit 6ee0fb7.
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-10-19
+
 ### Added
 
 - Hermes Agent: `integrations/hermes/` is a Portable Agent Plugins v1 package (stdio MCP server pinned to this release, plus a short skill). The landing page and the MCP skill carry the `hermes mcp add` line.
+- `flights` and MCP `search_flights` include a nearby-date price grid.
+  `--nearby-days` / `nearby_days` is opt-in (default `0`, off). Each one-way
+  or round-trip query gains `nearby_dates`: the cheapest owned fare per day for
+  ±N around the requested date, `delta` against that date, and `cheapest: true`
+  on the lowest priced day. Round trips shift the outbound and return together
+  and keep the trip length. The grid reuses the public date calendar (one batched
+  window per query). Multi-city queries omit it. An unpriced day is not "no
+  flights". The grid does not change `offers`.
+- Flight results include `price_insight` from the public Google Flights page
+  already fetched (`level`, `lowest`, `typical_range`, `page_label`). `level`
+  is Google's label (`low`, `typical`, or `high`) for the current price against
+  its typical range. Viajante quotes that label and does not say the price will
+  drop. A missing insight is null. When the heading and the page data disagree,
+  `price_insight` is null and `price_insight_error` is `markup_drift`; the
+  search still succeeds. `--price-history` (MCP `include_price_history`, default
+  off) adds the page's price history. `watch_price` includes the current run's
+  `price_insight`.
 
 ## [1.5.1] - 2026-10-19
 

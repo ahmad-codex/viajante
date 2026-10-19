@@ -524,6 +524,7 @@ class PipelineTests(unittest.TestCase):
                 "offers",
                 "stops_compare",
                 "recommendation",
+                "price_insight",
             },
             set(with_rec),
         )

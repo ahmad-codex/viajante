@@ -279,7 +279,7 @@ class PublicFlightsSourceTests(unittest.TestCase):
         source = PublicGoogleFlightsHttpSource(currency="EUR", client=client)
         query = RoundTrip("HAN", "SIN", OUT, BACK, adults=2, max_stops=0)
 
-        def parse(response, url, trip=None):
+        def parse(response, url, trip=None, **_extra):
             return (outbound,) if response.text == "outbound" else (returned,)
 
         with (

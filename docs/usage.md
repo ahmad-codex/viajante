@@ -71,6 +71,7 @@ list and accepted values.
 | `--max-duration 16` | Limit the reported itinerary duration, in hours. One-way public search also sends the limit to the page, which must echo it. |
 | `--price-cap 500` | Remove returned fares above this amount in the quote currency. One-way public search also sends the cap to the page, which must echo it. |
 | `--nearby` | Include known airports in the same city as the named origin or destination. |
+| `--nearby-days N` | Cheapest fare ±N days around each requested date (default 0, off). Round trips shift both dates and keep the trip length. |
 | `--include-airports LHR,LGW` / `--exclude-airports STN` | Restrict destinations or exclude origins and destinations; exclusions take priority. |
 | `--sort duration` | Order by `ranked`, `fare`/`price`, `duration`, `departure`, or `arrival`. |
 | `--baggage-buffer 30` | Add a ranking allowance for recognized low-cost carriers, in the quote currency. |
@@ -116,6 +117,15 @@ constraints and prints one note that they cannot both be met; neither is dropped
 Overnight constraints combine: `--require-overnight` and `--via` both apply, and a contradiction keeps both
 overnight constraints. `--alliance` has no member list; the page's own alliance row is the only evidence.
 A non-zero `--baggage-buffer` marks offers `needs_bag_verify` while bag counts are unknown.
+
+`--nearby-days` (MCP `nearby_days`) adds `nearby_dates` on each one-way or round-trip
+query: the cheapest owned fare for each day from N days before the requested date
+through N days after, `delta` against the requested date's fare, and `cheapest: true`
+on the lowest priced day. A round trip moves the outbound and return dates by the
+same number of days, so the trip stays the same length. The prices come from the
+same public date calendar as `dates` and `flex`, fetched as one batch per query.
+Multi-city queries omit the grid. A day with no price is not "no flights"; read
+`empty_reason` or `error`. The grid does not change `offers`. `0` turns it off.
 
 Exclusions: a named origin or destination in an exclude list returns nothing, unless `--nearby` already owned a
 non-excluded airport in the same city. An unnamed side stays unset. Do not rewrite a route to a substitute airport.
@@ -243,6 +253,24 @@ missing fact reads as unknown ("Checked bag fee unknown", "Carry-on not shown").
 Fare rules are never in the provider rows, so each entry says "Fare rules
 (refund, change) not shown"; refundable or flexible fares cannot be required.
 There are no savings claims and no reference prices.
+
+### Google price level
+
+A flights query may include `price_insight` from the same public results page.
+`level` is Google's word (`low`, `typical`, or `high`) for the current lowest
+price against the typical range on that page. Quote that label. Viajante does
+not say whether the price will drop. The text report adds one line when the
+page confirms it:
+
+```
+Google price level: typical · typical 170 USD–465 USD · lowest 293 USD
+```
+
+`--price-history` (MCP `search_flights` `include_price_history`, default off)
+adds `history` from that page and a min/max/last line. No extra request. A
+missing insight is null. When the heading and the page data disagree,
+`price_insight` is null and `price_insight_error` is `markup_drift`; the offers
+still come back. History dates are the UTC date of each timestamp on the page.
 
 ### Choosing a fetch mode
 

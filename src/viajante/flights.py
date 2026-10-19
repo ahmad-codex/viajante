@@ -13,8 +13,10 @@ from viajante.control import (
     SearchDeadline,
     checkpoint,
     controlled,
+    current_control,
     interruptible_sleep,
 )
+from viajante.dates import nearby_date_grid, validate_nearby_days
 from viajante.flight_evidence import _report_with_evidence, _stamp_google_flights_urls
 from viajante.flight_filters import (
     NO_OFFER_FILTERS,
@@ -58,6 +60,7 @@ from viajante.models import (
     FlightCabin,
     FlightQuery,
     MultiCity,
+    NearbyDates,
     QueryFailure,
     QueryResult,
     QuerySuccess,
@@ -198,6 +201,7 @@ def _run_search(
     inter_query_delay: Callable[[random.Random], float] = inter_query_delay_seconds,
     filters: OfferFilters = NO_OFFER_FILTERS,
     retry_backoff: Callable[[int, random.Random], float] = retry_backoff_seconds,
+    include_price_history: bool = False,
 ) -> SearchReport:
     report_progress = progress or (lambda _: None)
     results: list[QueryResult] = []
@@ -212,6 +216,10 @@ def _run_search(
         recommendation = _recommend(trip, pool, filters, currency=currency, packaged=packaged)
         metadata_for = getattr(source, "metadata_for", None)
         page_error, scope_bound = metadata_for(trip) if callable(metadata_for) else (None, False)
+        insight_for = getattr(source, "price_insight_for", None)
+        insight, insight_error = insight_for(trip) if callable(insight_for) else (None, None)
+        if insight is not None and not include_price_history and insight.history is not None:
+            insight = replace(insight, history=None)
         return QuerySuccess(
             query=trip,
             raw_count=len(cards),
@@ -221,6 +229,8 @@ def _run_search(
             recommendation=recommendation,
             page_errors=(classify_failure(page_error),) if page_error is not None else (),
             scope_bound=scope_bound,
+            price_insight=insight,
+            price_insight_error=insight_error,
         )
 
     def _stamp(result: QueryResult) -> QueryResult:
@@ -383,6 +393,8 @@ def get_flights(
     proxy: Optional[str] = None,
     cancel: Optional[threading.Event] = None,
     deadline_seconds: Optional[float] = None,
+    nearby_days: int = 0,
+    include_price_history: bool = False,
 ) -> SearchReport:
     """One-shot flight search from a route spec or trips.
 
@@ -421,6 +433,8 @@ def get_flights(
         "proxy": proxy,
         "cancel": cancel,
         "deadline_seconds": deadline_seconds,
+        "nearby_days": nearby_days,
+        "include_price_history": include_price_history,
     }
 
     def _search(trips: Sequence[Trip]) -> SearchReport:
@@ -494,6 +508,7 @@ def validate_flight_search_args(
     require_overnight: Optional[Sequence[str]] = None,
     exclude_airports: Optional[Sequence[str]] = None,
     include_airports: Optional[Sequence[str]] = None,
+    nearby_days: int = 0,
 ) -> Tuple[OfferFilters, Optional[Tuple[str, ...]], Optional[Tuple[str, ...]]]:
     """Every check on search arguments alone, before any lock, fetch or state write.
 
@@ -522,7 +537,76 @@ def validate_flight_search_args(
     validate_sort(sort)
     if fetch not in ("auto", "sweep", "detail"):
         raise ValueError("fetch must be 'auto', 'sweep', or 'detail'")
+    validate_nearby_days(nearby_days)
     return filters, parsed_exclude, parsed_include
+
+
+def _nearby_progress(progress: Callable[[str], None]) -> Callable[[str], None]:
+    def report(line: str) -> None:
+        # The date sweep's "[i/n]" lines would reset the flight-search progress total.
+        if line.lstrip().startswith("["):
+            line = "nearby " + line.lstrip()
+        progress(line)
+
+    return report
+
+
+def _query_blocked(result: QueryResult) -> bool:
+    return isinstance(result, QueryFailure) and result.error.code == SearchErrorCode.BLOCKED
+
+
+def _grid_blocked(grid: NearbyDates) -> bool:
+    return any(
+        cell.error is not None and cell.error.code == SearchErrorCode.BLOCKED
+        for cell in grid.prices
+    )
+
+
+def _wants_nearby_grid(report: SearchReport, days: int) -> bool:
+    control = current_control()
+    if days <= 0 or (control is not None and control.cut):
+        return False
+    if any(_query_blocked(result) for result in report.queries):
+        return False
+    return any(isinstance(result.query, (FlightQuery, RoundTrip)) for result in report.queries)
+
+
+def _attach_nearby_dates(
+    report: SearchReport,
+    *,
+    source: _FlightSource,
+    days: int,
+    filters: OfferFilters,
+    baggage_buffer: int,
+    progress: Callable[[str], None],
+) -> SearchReport:
+    if not _wants_nearby_grid(report, days):
+        return report
+    if any(isinstance(result.query, MultiCity) for result in report.queries):
+        progress("nearby dates: multi-city queries are omitted")
+    note = _nearby_progress(progress)
+    updated: list[QueryResult] = []
+    stopped = False
+    for result in report.queries:
+        if stopped or not isinstance(result.query, (FlightQuery, RoundTrip)):
+            updated.append(result)
+            continue
+        grid = nearby_date_grid(
+            source,
+            result.query,
+            days,
+            filters=filters,
+            baggage_buffer=baggage_buffer,
+            progress=note,
+        )
+        if grid is None:
+            updated.append(result)
+            continue
+        updated.append(replace(result, nearby_dates=grid))
+        if _grid_blocked(grid):
+            stopped = True
+            progress("nearby dates stopped after a provider block")
+    return replace(report, queries=tuple(updated))
 
 
 @controlled
@@ -561,6 +645,8 @@ def search_flights(
     proxy: Optional[str] = None,
     cancel: Optional[threading.Event] = None,
     deadline_seconds: Optional[float] = None,
+    nearby_days: int = 0,
+    include_price_history: bool = False,
 ) -> SearchReport:
     if not queries:
         raise ValueError("at least one query is required")
@@ -583,6 +669,7 @@ def search_flights(
         require_overnight=require_overnight,
         exclude_airports=exclude_airports,
         include_airports=include_airports,
+        nearby_days=nearby_days,
     )
     currency = resolve_quote_currency(currency, first_origin_iata(queries[0]))
     baggage_buffer = resolve_baggage_buffer(baggage_buffer, currency)
@@ -632,8 +719,9 @@ def search_flights(
         fetch_backend: FetchBackend,
         retry_backoff: Callable[[int, random.Random], float] = retry_backoff_seconds,
     ) -> SearchReport:
+        grid_client: Optional[_FlightSource] = None
         try:
-            return _run_search(
+            report = _run_search(
                 trips_to_search,
                 top=top,
                 source=source,
@@ -649,8 +737,29 @@ def search_flights(
                 inter_query_delay=inter_query_delay,
                 filters=filters,
                 retry_backoff=retry_backoff,
+                include_price_history=include_price_history,
+            )
+            client = source
+            if (
+                nearby_days
+                and fetch_backend == "detail"
+                and _wants_nearby_grid(report, nearby_days)
+            ):
+                grid_client = GoogleFlightsHttpSource(
+                    currency=currency, country=country, proxy=proxy
+                )
+                client = grid_client
+            return _attach_nearby_dates(
+                report,
+                source=client,
+                days=nearby_days,
+                filters=filters,
+                baggage_buffer=baggage_buffer,
+                progress=report_progress,
             )
         finally:
+            if grid_client is not None:
+                grid_client.close()
             source.close()
 
     noun = "query" if len(trips) == 1 else "queries"

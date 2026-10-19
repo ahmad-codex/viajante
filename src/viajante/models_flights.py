@@ -616,6 +616,49 @@ class StopsCompare:
         return payload
 
 
+PriceLevel = Literal["low", "typical", "high"]
+
+
+@dataclass(frozen=True)
+class PriceInsight:
+    """Google's own price level for one results page. Not a forecast."""
+
+    level: PriceLevel
+    lowest: Optional[float]
+    typical_range: Optional[Tuple[float, float]]
+    currency: str
+    page_label: str
+    history: Optional[Tuple[Tuple[str, float], ...]] = None
+    source: str = "google_flights"
+
+    def __post_init__(self) -> None:
+        if self.level not in ("low", "typical", "high"):
+            raise ValueError("price insight level must be low, typical, or high")
+        if self.source != "google_flights":
+            raise ValueError("price insight source is google_flights")
+        if not self.currency:
+            raise ValueError("price insight currency is required")
+        if self.typical_range is not None:
+            low, high = self.typical_range
+            if low > high:
+                raise ValueError("typical range low must be <= high")
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "source": self.source,
+            "level": self.level,
+            "lowest": self.lowest,
+            "typical_range": list(self.typical_range) if self.typical_range is not None else None,
+            "currency": self.currency,
+            "page_label": self.page_label,
+            "history": (
+                None
+                if self.history is None
+                else [{"date": day, "price": price} for day, price in self.history]
+            ),
+        }
+
+
 @dataclass(frozen=True)
 class QuerySuccess:
     query: Trip
@@ -628,6 +671,9 @@ class QuerySuccess:
     recommendation: Optional["Recommendation"] = None
     page_errors: Tuple[SearchError, ...] = ()
     scope_bound: bool = False
+    nearby_dates: Optional[NearbyDates] = None
+    price_insight: Optional[PriceInsight] = None
+    price_insight_error: Optional[Literal["markup_drift"]] = None
     status: Literal["ok"] = field(init=False, default="ok")
 
     def __post_init__(self) -> None:
@@ -637,6 +683,10 @@ class QuerySuccess:
             raise ValueError("eligible_count must be >= number of offers")
         if self.empty_reason is not None and self.offers:
             raise ValueError("empty_reason applies only to a query with no offers")
+        if self.price_insight_error not in (None, "markup_drift"):
+            raise ValueError("price_insight_error must be markup_drift")
+        if self.price_insight is not None and self.price_insight_error is not None:
+            raise ValueError("price_insight_error applies only when price_insight is absent")
 
     def to_dict(self, currency: str) -> Mapping[str, object]:
         query = dict(self.query.to_dict())
@@ -658,7 +708,13 @@ class QuerySuccess:
         if self.recommendation is not None:
             listed = {offer.evidence.evidence_id for offer in self.offers if offer.evidence}
             payload["recommendation"] = self.recommendation.to_dict(listed, currency)
+        payload["price_insight"] = (
+            self.price_insight.to_dict() if self.price_insight is not None else None
+        )
+        _put_present(payload, "price_insight_error", self.price_insight_error)
         _put_present(payload, "empty_reason", self.empty_reason)
+        if self.nearby_dates is not None:
+            payload["nearby_dates"] = self.nearby_dates.to_dict()
         return payload
 
 
@@ -667,17 +723,79 @@ class QueryFailure:
     query: Trip
     error: SearchError
     google_flights_url: Optional[str] = None
+    nearby_dates: Optional[NearbyDates] = None
     status: Literal["error"] = field(init=False, default="error")
 
     def to_dict(self) -> Mapping[str, object]:
         query = dict(self.query.to_dict())
         if self.google_flights_url:
             query["google_flights_url"] = self.google_flights_url
-        return {
+        payload: dict[str, object] = {
             "status": self.status,
             "query": query,
             "error": self.error.to_dict(),
         }
+        if self.nearby_dates is not None:
+            payload["nearby_dates"] = self.nearby_dates.to_dict()
+        return payload
+
+
+@dataclass(frozen=True)
+class NearbyDatePrice:
+    """One day in a flight search's nearby-date grid. Price is the day's cheapest owned fare."""
+
+    departure_date: date
+    offset_days: int
+    price: Optional[float] = None
+    delta: Optional[float] = None
+    return_date: Optional[date] = None
+    cheapest: bool = False
+    status: Literal["ok", "empty", "error"] = "ok"
+    empty_reason: Optional[EmptyReason] = None
+    error: Optional[SearchError] = None
+
+    def to_dict(self) -> Mapping[str, object]:
+        payload: dict[str, object] = {
+            "date": self.departure_date.isoformat(),
+            "offset_days": self.offset_days,
+            "price": self.price,
+            "delta": self.delta,
+            "status": self.status,
+            "cheapest": self.cheapest,
+        }
+        if self.return_date is not None:
+            payload["return_date"] = self.return_date.isoformat()
+        _put_present(payload, "empty_reason", self.empty_reason)
+        if self.error is not None:
+            payload["error"] = self.error.to_dict()
+        return payload
+
+
+@dataclass(frozen=True)
+class NearbyDates:
+    """±N cheapest fares around the requested departure. Deltas use that day's owned fare."""
+
+    days: int
+    requested_date: date
+    prices: Tuple[NearbyDatePrice, ...]
+    cheapest_date: Optional[date] = None
+    nights: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        if self.days < 1:
+            raise ValueError("nearby_dates.days must be at least 1")
+        if not self.prices:
+            raise ValueError("nearby_dates needs at least one day")
+
+    def to_dict(self) -> Mapping[str, object]:
+        payload: dict[str, object] = {
+            "days": self.days,
+            "requested_date": self.requested_date.isoformat(),
+            "cheapest_date": None if self.cheapest_date is None else self.cheapest_date.isoformat(),
+            "prices": [row.to_dict() for row in self.prices],
+        }
+        _put_present(payload, "nights", self.nights)
+        return payload
 
 
 QueryResult = Union[QuerySuccess, QueryFailure]
