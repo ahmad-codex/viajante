@@ -4,8 +4,11 @@ import base64
 import json
 import unittest
 from datetime import date, timedelta
+from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
+
+from selectolax.lexbor import LexborHTMLParser
 
 import _isolate  # noqa: F401
 from viajante.control import SearchCancelled, SearchDeadline
@@ -14,18 +17,27 @@ from viajante.envelope import stamp_search
 from viajante.google_flights import (
     SWEEP_RETRY_BACKOFF_SECONDS,
     GoogleFlightsBlocked,
+    NoFlightsFound,
     SweepHttpResponse,
     reset_shared_chrome_sweep_client,
     shared_chrome_sweep_client,
 )
+from viajante.google_flights_page import page_tree, shared_page_tree
 from viajante.google_flights_public import (
     GoogleFlightsMarkupError,
     GoogleFlightsUnsupported,
     PublicGoogleFlightsHttpSource,
     _validate_capabilities,
 )
-from viajante.google_flights_rpc import RawFlightCard
-from viajante.models import FlightQuery, MultiCity, RawJourneyLeg, RawSegment, RoundTrip
+from viajante.google_flights_rpc import RawFlightCard, _collect_itineraries, _wrb_json
+from viajante.models import (
+    FlightQuery,
+    MultiCity,
+    ProviderShop,
+    RawJourneyLeg,
+    RawSegment,
+    RoundTrip,
+)
 
 OUT = date(2026, 11, 14)
 BACK = date(2026, 11, 25)
@@ -739,7 +751,6 @@ class PublicRoundTripCoverageTests(unittest.TestCase):
 
 class PublicPackageEmptyTests(unittest.TestCase):
     def test_empty_selected_returns_do_not_prove_no_round_trip_flights(self):
-        from viajante.google_flights import GoogleFlightsMarkupError, NoFlightsFound
 
         source = _source()
         query = RoundTrip("HAN", "SIN", OUT, BACK, adults=2, max_stops=0)
@@ -851,3 +862,84 @@ class SweepPolicyPinTests(unittest.TestCase):
                 self.assertIs(shared_chrome_sweep_client(proxy="http://two.example:8080"), second)
             finally:
                 reset_shared_chrome_sweep_client()
+
+
+class SharedPageTreeTests(unittest.TestCase):
+    """One fetched public page is parsed into one HTML tree, however many checks read it."""
+
+    @staticmethod
+    def _page() -> str:
+        wrb = (Path(__file__).parent / "bench" / "shopping-longhaul-group.wrb").read_text(
+            encoding="utf-8"
+        )
+        data = _wrb_json(wrb, kind="shopping")
+        return (
+            "<html><body>"
+            + _context(adults=2)
+            + "<script class=\"ds:1\">AF_initDataCallback({key:'ds:1',hash:'1',data:"
+            + json.dumps(data)
+            + ",sideChannel:{}});</script></body></html>"
+        )
+
+    def test_a_page_parse_builds_its_html_tree_once(self) -> None:
+        html = self._page()
+        trip = FlightQuery("MAD", "ICN", OUT, max_stops=1, adults=2)
+        url = "https://www.google.com/travel/flights?tfs=shared-tree"
+        built: list[str] = []
+
+        def counting(text: str) -> LexborHTMLParser:
+            built.append(text)
+            return LexborHTMLParser(text)
+
+        with patch("viajante.google_flights_page.LexborHTMLParser", counting):
+            cards = _source()._parse_response(SweepHttpResponse(200, html, url), url, trip)
+
+        self.assertTrue(cards)
+        self.assertEqual(len(built), 1)
+
+    def test_shared_tree_serves_only_the_page_it_was_opened_for(self) -> None:
+        page = "".join(["<p>", "one</p>"])
+        other = "".join(["<p>", "one</p>"])
+        self.assertIsNot(page, other)
+
+        with shared_page_tree(page):
+            first = page_tree(page)
+            self.assertIs(page_tree(page), first)
+            self.assertIsNot(page_tree(other), first)
+
+        self.assertIsNot(page_tree(page), first)
+
+
+class UnpricedPageTests(unittest.TestCase):
+    """Google answers a price cap below its cheapest fare with the flights listed unpriced."""
+
+    @staticmethod
+    def _unpriced_page(*, price_chip: bool) -> str:
+        wrb = (Path(__file__).parent / "bench" / "shopping-longhaul-group.wrb").read_text(
+            encoding="utf-8"
+        )
+        data = _wrb_json(wrb, kind="shopping")
+        for item in _collect_itineraries(data):
+            item[1] = None
+        chip = '<button aria-label="up to €400, Price, Selected"></button>' if price_chip else ""
+        return (
+            "<html><body>"
+            + _context(adults=2)
+            + chip
+            + "<script class=\"ds:1\">AF_initDataCallback({key:'ds:1',hash:'1',data:"
+            + json.dumps(data)
+            + ",sideChannel:{}});</script></body></html>"
+        )
+
+    def _parse(self, html: str, provider: ProviderShop | None) -> None:
+        trip = FlightQuery("MAD", "ICN", OUT, max_stops=1, adults=2, provider=provider)
+        url = "https://www.google.com/travel/flights?tfs=unpriced"
+        _source()._parse_response(SweepHttpResponse(200, html, url), url, trip)
+
+    def test_a_sent_price_cap_that_prices_nothing_is_an_empty_search(self) -> None:
+        with self.assertRaises(NoFlightsFound):
+            self._parse(self._unpriced_page(price_chip=True), ProviderShop(max_price=400))
+
+    def test_unpriced_flights_without_a_sent_cap_stay_markup_drift(self) -> None:
+        with self.assertRaisesRegex(GoogleFlightsMarkupError, "no priced offers"):
+            self._parse(self._unpriced_page(price_chip=False), None)

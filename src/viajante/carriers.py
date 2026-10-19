@@ -50,17 +50,6 @@ ALLIANCE_ALIASES = {
     "*a": "star",
 }
 
-# Longest English alliance phrases first. Bare "star" is not a phrase.
-ALLIANCE_PHRASES: tuple[tuple[str, str], ...] = (
-    ("star alliance", "star"),
-    ("star-alliance", "star"),
-    ("staralliance", "star"),
-    ("one world", "oneworld"),
-    ("oneworld", "oneworld"),
-    ("sky team", "skyteam"),
-    ("skyteam", "skyteam"),
-)
-
 
 def _unique(codes: Sequence[str]) -> Tuple[str, ...]:
     seen: set[str] = set()

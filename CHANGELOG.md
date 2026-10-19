@@ -9,7 +9,7 @@ history up to commit 6ee0fb7.
 
 ## [Unreleased]
 
-## [1.5.1] - 2026-10-13
+## [1.5.1] - 2026-10-19
 
 ### Added
 
@@ -22,7 +22,9 @@ history up to commit 6ee0fb7.
   Fetch `auto` and `sweep` send the clock bounds, `max_duration`, `max_layover`,
   the price cap, and the two options to Google's page. The page must echo each
   one; a missing or tighter echo is `markup_drift`. The local filter still runs on
-  every row.
+  every row. Each query's JSON carries `google_filters` with the bounds sent. A
+  price cap below Google's cheapest fare ends as `no_results` for the query as
+  sent, because Google then lists the flights unpriced.
 - `--exclude-basic-economy` is refused on every path: the public page echoes no
   basic-economy filter, so viajante cannot prove it applied.
 
@@ -34,6 +36,11 @@ history up to commit 6ee0fb7.
   `markup_drift` after a 20 s probe, not a 60 s timeout retried three times.
 - The Google cooldown after a 429 is a fixed 2 minutes, or the named `Retry-After`
   up to 30 minutes. It no longer doubles on each repeat limit.
+- Public Google Flights results pages are parsed into one HTML tree per fetch,
+  not two or three, and the ds:1 data is decoded once. On a real 5.3 MB results
+  page, 31 parses took 1.5 s of CPU before and 0.6 s now (median of 5 runs, the
+  same 113 cards). A live search spends most of its time on the network, so the end-to-end
+  gain is much smaller. The block check runs once per response, not once per caller.
 
 ### Fixed
 
@@ -46,7 +53,6 @@ history up to commit 6ee0fb7.
   price checked bags. Only `--carry-on` rides the request.
 - Four CLI tests used a departure date that is now in the past.
 - The MCP `initialize` response reports the viajante version; it was blank.
-
 
 ## [1.5.0] - 2026-10-08
 

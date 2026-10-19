@@ -12,6 +12,7 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 import _isolate  # noqa: F401
+from viajante import google_flights
 from viajante.flight_offers import _normalize_offer
 from viajante.google_flights import (
     GoogleFlightsBlocked,
@@ -2126,3 +2127,20 @@ class DetailSorryPageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LooksBlockedMemoTests(unittest.TestCase):
+    """One response is checked once; a different page or URL is checked again."""
+
+    def test_the_same_page_and_url_are_checked_once(self) -> None:
+        page = "".join(["<html>", "results", "</html>"])
+        same_text = "".join(["<html>", "results", "</html>"])
+        real = google_flights._looks_blocked
+        with patch("viajante.google_flights._looks_blocked", wraps=real) as check:
+            self.assertFalse(google_flights.looks_blocked(page, "https://www.google.com/a"))
+            self.assertFalse(google_flights.looks_blocked(page, "https://www.google.com/a"))
+            self.assertEqual(check.call_count, 1)
+            google_flights.looks_blocked(page, "https://www.google.com/b")
+            self.assertEqual(check.call_count, 2)
+            google_flights.looks_blocked(same_text, "https://www.google.com/b")
+            self.assertEqual(check.call_count, 3)

@@ -883,6 +883,10 @@ search at a time. See the signatures in
   all of them. Loopback binds reject a foreign `Host` (421) or `Origin` (refused) header,
   which stops DNS-rebinding from a web page. Client entry: `{"mcpServers": {"viajante": {"url": "http://127.0.0.1:8000/mcp"}}}`;
   Claude Code: `claude mcp add --transport http viajante http://127.0.0.1:8000/mcp`.
+  To keep one server running across sessions (a systemd user unit or a launchd agent
+  that runs the command above), the cold start is paid once, not per session. The
+  server runs one search at a time, so a second session that searches while one is
+  running gets `search_in_progress`, and the lookup tools still answer.
 
 To diagnose installation drift, run `viajante --version` or call MCP
 `get_runtime_info`. Hotel JSON includes the executing
