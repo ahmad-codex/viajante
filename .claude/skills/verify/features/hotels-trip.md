@@ -31,19 +31,19 @@ Preconditions:
 - The doctor shows `live ok`. The Booking path needs the `chromium ok` line. Dates are in
   the future.
 
-- **Google hotels (`ht-google`).** Run `drive.sh "$RUN" ht-google viajante hotels Lisbon 2026-11-18 2026-11-21 --currency EUR --source google --top 3 --save "$RUN/evidence/ht-google.json"`.
-  The result has at most 3 rows with total-stay `EUR` prices, Google ratings on a 0–5 scale,
+- **Google hotels (`ht-google`).** Run `drive.sh "$RUN" ht-google viajante hotels Singapore 2026-11-18 2026-11-21 --currency SGD --source google --top 3 --save "$RUN/evidence/ht-google.json"`.
+  The result has at most 3 rows with total-stay `SGD` prices, Google ratings on a 0–5 scale,
   and `viajante_version` in the JSON.
-- **Booking (`ht-booking`).** Run `drive.sh "$RUN" ht-booking viajante hotels Lisbon 2026-11-18 2026-11-21 --currency EUR --top 3 --save "$RUN/evidence/ht-booking.json"`.
+- **Booking (`ht-booking`).** Run `drive.sh "$RUN" ht-booking viajante hotels Singapore 2026-11-18 2026-11-21 --currency SGD --top 3 --save "$RUN/evidence/ht-booking.json"`.
   Ratings are on a 0–10 scale, with cancellation evidence per row. On failure, check
   `$RUN/evidence/ht-booking.booking-last-failure.*`.
-- **Missing currency.** Run `drive.sh "$RUN" ht-nocur viajante hotels Lisbon 2026-11-18 2026-11-21`.
+- **Missing currency.** Run `drive.sh "$RUN" ht-nocur viajante hotels Singapore 2026-11-18 2026-11-21`.
   The result is exit `1` and no request. It needs no live gate.
-- **Trip (`tr-trip`).** Run `drive.sh "$RUN" tr-trip viajante trip JFK-LIS:2026-11-18:2026-11-21 --hotel Lisbon --trip rt --source google --currency USD --save "$RUN/evidence/tr-trip.json"`.
+- **Trip (`tr-trip`).** Run `drive.sh "$RUN" tr-trip viajante trip JFK-SIN:2026-11-18:2026-11-21 --hotel Singapore --trip rt --source google --currency USD --save "$RUN/evidence/tr-trip.json"`.
   The output shows the flight fare, the hotel total stay, and a sum only when both are
   priced in the same currency.
 - **MCP (`ht-details`).** In one session, run `search_hotels` and then `get_hotel_details`
-  on a returned `selection_id`. Run `drive.sh "$RUN" ht-mcp python .claude/skills/verify/scripts/mcp_call.py search_hotels '{"location": "Lisbon", "check_in": "2026-11-18", "check_out": "2026-11-21", "currency": "EUR", "source": "google", "top": 3}'`.
+  on a returned `selection_id`. Run `drive.sh "$RUN" ht-mcp python .claude/skills/verify/scripts/mcp_call.py search_hotels '{"location": "Singapore", "check_in": "2026-11-18", "check_out": "2026-11-21", "currency": "SGD", "source": "google", "top": 3}'`.
   Then copy a `selection_id` from that output into a second session. Ids are valid only
   within the server process, so a second session gets `no_results`. That's correct, not a
   bug, and it means `ht-details` needs both calls passed to one `mcp_call.py` invocation.
