@@ -25,6 +25,10 @@ class CompactParseMiss(ValueError):
     """Compact shopping body was not a readable itinerary payload."""
 
 
+class UnpricedShoppingResults(CompactParseMiss):
+    """Itineraries decoded, but none carried a price."""
+
+
 class EmptyShoppingResults(Exception):
     """Shopping RPC returned itinerary slots with no priced offers."""
 
@@ -92,7 +96,7 @@ def parse_shopping_data(data: object, *, currency: str) -> tuple[RawFlightCard, 
         card for item in items if (card := _itinerary_to_card(item, currency=currency)) is not None
     )
     if not cards:
-        raise CompactParseMiss("itineraries had no priced offers")
+        raise UnpricedShoppingResults("itineraries had no priced offers")
     return cards
 
 

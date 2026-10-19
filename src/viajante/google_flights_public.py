@@ -39,6 +39,7 @@ from viajante.google_flights_rpc import (
     CompactParseMiss,
     EmptyShoppingResults,
     RawFlightCard,
+    UnpricedShoppingResults,
     explore_request_constraints,
     explore_request_echo,
     parse_explore_catalog,
@@ -414,6 +415,13 @@ class PublicGoogleFlightsHttpSource(GoogleFlightsHttpSource):
             except EmptyShoppingResults as exc:
                 if trip is not None:
                     self._verify_carrier_filters(html, (), trip)
+                raise NoFlightsFound() from exc
+            except UnpricedShoppingResults as exc:
+                provider = getattr(trip, "provider", None)
+                if provider is None or provider.max_price is None:
+                    raise GoogleFlightsMarkupError(str(exc)) from exc
+                # Below its cheapest fare, Google echoes the cap and lists the flights unpriced.
+                self._verify_carrier_filters(html, (), trip)
                 raise NoFlightsFound() from exc
             except CompactParseMiss as exc:
                 # Missing bootstrap data cannot prove the provider returned no flights.
