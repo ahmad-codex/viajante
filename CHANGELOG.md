@@ -9,6 +9,8 @@ history up to commit 6ee0fb7.
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-10-19
+
 ### Added
 
 - Hermes Agent: `integrations/hermes/` is a Portable Agent Plugins v1 package (stdio MCP server pinned to this release, plus a short skill). The landing page and the MCP skill carry the `hermes mcp add` line.
