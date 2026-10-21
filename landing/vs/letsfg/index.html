@@ -268,11 +268,57 @@ th[scope="row"] {
   font-weight: 600;
 }
 
+@media (max-width: 720px) {
+  .scroll { overflow: visible; }
+  table { min-width: 0; }
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  tr {
+    display: block;
+    padding: 16px 0 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  th, td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+  th[scope="row"] { margin-bottom: 10px; }
+  td + td { margin-top: 12px; }
+  td::before {
+    content: attr(data-who);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
 code {
   padding: 1px 6px;
   border-radius: 6px;
   background: var(--soft);
   font-size: 0.92em;
+}
+
+code.cmd {
+  display: block;
+  margin-top: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .sources { margin: 14px 0 0; padding-left: 20px; }
@@ -344,33 +390,33 @@ code {
         <tbody>
           <tr>
             <th scope="row">Price</th>
-            <td>Free. MIT licensed and open source.</td>
-            <td>Connecting the hosted MCP costs nothing. No sign-up form and no card to connect.</td>
+            <td data-who="viajante">Free. MIT licensed and open source.</td>
+            <td data-who="LetsFG">Connecting the hosted MCP costs nothing. No sign-up form and no card to connect.</td>
           </tr>
           <tr>
             <th scope="row">Sign-in</th>
-            <td>No account, login, OAuth, or API key.</td>
-            <td>OAuth is required. You approve the connection in a browser. A request without a token is rejected.</td>
+            <td data-who="viajante">No account, login, OAuth, or API key.</td>
+            <td data-who="LetsFG">OAuth is required. You approve the connection in a browser. A request without a token is rejected.</td>
           </tr>
           <tr>
             <th scope="row">Where it runs</th>
-            <td>On your machine. The CLI installs with <code>pip install viajante</code>. The MCP server is local: stdio by default, or an optional HTTP endpoint bound to 127.0.0.1. Searches go from your machine to the sources, not through a viajante server.</td>
-            <td>On their servers. The hosted MCP is <code>https://letsfg.co/mcp</code>. Their backend guide says flight search runs server-side at letsfg.co.</td>
+            <td data-who="viajante">On your machine. The CLI installs with <code>pip install viajante</code>. The MCP server is local: stdio by default, or an optional HTTP endpoint bound to 127.0.0.1. Searches go from your machine to the sources, not through a viajante server.</td>
+            <td data-who="LetsFG">On their servers. The hosted MCP is <code>https://letsfg.co/mcp</code>. Their backend guide says flight search runs server-side at letsfg.co.</td>
           </tr>
           <tr>
             <th scope="row">Booking</th>
-            <td>Never books and never takes payment. No affiliate links and no markup. It links you to Google Flights or Booking so you book yourself.</td>
-            <td>Books flights and hotels for you. Before any money is held, they email an Approve button. Nothing is held until you press it.</td>
+            <td data-who="viajante">Never books and never takes payment. No affiliate links and no markup. It links you to Google Flights or Booking so you book yourself.</td>
+            <td data-who="LetsFG">Books flights and hotels for you. Before any money is held, they email an Approve button. Nothing is held until you press it.</td>
           </tr>
           <tr>
             <th scope="row">Search cap</th>
-            <td>No quota from viajante. A source may throttle, and viajante then pauses further requests to that source.</td>
-            <td>Flight searches on the hosted MCP: 10 per 10 minutes, 30 per hour, and 100 per day.</td>
+            <td data-who="viajante">No quota from viajante. A source may throttle, and viajante then pauses further requests to that source.</td>
+            <td data-who="LetsFG">Flight searches on the hosted MCP: 10 per 10 minutes, 30 per hour, and 100 per day.</td>
           </tr>
           <tr>
             <th scope="row">Telemetry</th>
-            <td>No telemetry or analytics in the software.</td>
-            <td>Not compared.</td>
+            <td data-who="viajante">No telemetry or analytics in the software.</td>
+            <td data-who="LetsFG">Not compared.</td>
           </tr>
         </tbody>
       </table>
@@ -417,9 +463,9 @@ code {
     <h3>Points and miles</h3>
     <p>Local award math on offers you supply: cents per point, and transfer paths. It does not search live award seats, and it does not book the award.</p>
 
-    <h3>Where it runs</h3>
+    <h3>Clients</h3>
     <p>Claude, Cursor, and Hermes Agent, as a local MCP server, and as a Python package (<code>pip install viajante</code>). In Hermes Agent:</p>
-    <p><code>hermes mcp add viajante --connect-timeout 300 --command npx --args -y @viajante/mcp</code></p>
+    <p><code class="cmd">hermes mcp add viajante --connect-timeout 300 --command npx --args -y @viajante/mcp</code></p>
     <p>Setup for the other clients is on the <a href="/">viajante homepage</a>.</p>
   </section>
 
