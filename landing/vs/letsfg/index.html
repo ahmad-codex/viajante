@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>viajante vs LetsFG: free, local flight search for AI agents</title>
+<meta name="description" content="Compare viajante and LetsFG for AI-agent flight search. viajante is free and local, with no account and no booking. LetsFG is hosted and books after email approval.">
+<link rel="canonical" href="https://viajante.felipebasurto.com/vs/letsfg">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Viajante">
+<meta property="og:title" content="viajante vs LetsFG: free, local flight search for AI agents">
+<meta property="og:description" content="Compare viajante and LetsFG for AI-agent flight search. viajante is free and local, with no account and no booking. LetsFG is hosted and books after email approval.">
+<meta property="og:url" content="https://viajante.felipebasurto.com/vs/letsfg">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="viajante vs LetsFG: free, local flight search for AI agents">
+<meta name="twitter:description" content="Compare viajante and LetsFG for AI-agent flight search. viajante is free and local, with no account and no booking. LetsFG is hosted and books after email approval.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230066CC'/%3E%3Cpath d='M8 9l8 15 8-15' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&display=swap"></noscript>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is viajante free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. It is free, MIT licensed, and open source. It does not take payment, add a markup, or use affiliate links."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does viajante need an account or an API key?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. There is no account, login, OAuth, or API key. Install the command-line tool with pip. The MCP server runs on your machine, over stdio or on an optional HTTP endpoint bound to 127.0.0.1."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does viajante book flights?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. It never books and never takes payment. It links you to Google Flights or Booking so you book yourself."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where do searches go?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "From your machine to Google Flights, Google Hotels, and Booking. Skiplagged is contacted only if you opt in, for hidden-city search or Skiplagged hotels. Searches are not sent through a viajante server."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does viajante cap how many searches you can run?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. viajante does not set a search quota. If a source throttles, viajante pauses further requests to that source."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When is LetsFG the better choice?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "When you want the tool to book the flight or the hotel. LetsFG books both after you approve the booking by email. viajante returns the rows and the links, and you book yourself."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does viajante work in Claude, Cursor, and Hermes?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. It runs as a local MCP server in Claude, Cursor, and Hermes Agent, and as a Python package. In Hermes Agent the command is hermes mcp add viajante --connect-timeout 300 --command npx --args -y @viajante/mcp."
+      }
+    }
+  ]
+}
+</script>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #FFFFFF;
+  --ink: #1D1D1F;
+  --muted: #6E6E73;
+  --line: #E5E5EA;
+  --soft: #F5F5F7;
+  --accent: #0066CC;
+  --mark: #E3EEFF;
+  --p-user: #DCE9FF;
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--bg); }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Figtree, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--p-user); color: var(--ink); }
+
+a { color: var(--accent); text-underline-offset: 3px; }
+
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-inline: 24px;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;
+}
+
+.top { border-bottom: 1px solid var(--line); }
+
+.brand {
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.brand:hover { text-decoration: underline; }
+
+.here {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+h1, h2, h3 { text-wrap: balance; }
+
+h1 {
+  margin: 28px 0 0;
+  font-size: clamp(36px, 5.4vw, 56px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.lede {
+  margin: 16px 0 0;
+  max-width: 640px;
+  color: var(--muted);
+  font-size: 20px;
+}
+
+.checked {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.facts li {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+section {
+  padding-top: 56px;
+  padding-bottom: 8px;
+}
+
+section + section { border-top: 1px solid var(--line); margin-top: 48px; }
+
+h2 {
+  margin: 0;
+  font-size: clamp(26px, 3.2vw, 34px);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+h3 {
+  margin: 28px 0 6px;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+p { margin: 12px 0 0; }
+
+.note {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: var(--soft);
+}
+
+.note p { margin: 8px 0 0; }
+.note p:first-of-type { margin-top: 0; }
+
+.scroll {
+  margin-top: 22px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+caption {
+  caption-side: bottom;
+  padding-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: left;
+}
+
+th, td {
+  padding: 14px 16px 14px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+thead th {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+th[scope="row"] {
+  width: 22%;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .scroll { overflow: visible; }
+  table { min-width: 0; }
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  tr {
+    display: block;
+    padding: 16px 0 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  th, td {
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
+  }
+  th[scope="row"] { margin-bottom: 10px; }
+  td + td { margin-top: 12px; }
+  td::before {
+    content: attr(data-who);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--soft);
+  font-size: 0.92em;
+}
+
+code.cmd {
+  display: block;
+  margin-top: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.sources { margin: 14px 0 0; padding-left: 20px; }
+.sources li { margin-top: 8px; }
+.sources li::marker { color: var(--muted); }
+
+.faq h3 { margin-top: 22px; }
+.faq h3:first-of-type { margin-top: 18px; }
+.faq p { max-width: 68ch; }
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px 22px;
+  margin-top: 64px;
+  padding-top: 40px;
+  padding-bottom: 56px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.foot a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.foot a:hover { color: var(--ink); text-decoration: underline; }
+
+.foot a[aria-current="page"] { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="brand" href="/">viajante</a>
+    <span class="here">Comparison</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>viajante vs LetsFG</h1>
+  <p class="lede">Free, local flight search for AI agents. viajante runs on your machine and hands you the links. LetsFG runs on their servers and can book.</p>
+  <p class="checked">Last checked 21 October 2026. Sources are linked below.</p>
+  <ul class="facts">
+    <li>Free, MIT license</li>
+    <li>No account or API key</li>
+    <li>Runs on your machine</li>
+  </ul>
+
+  <section>
+    <h2>Side by side</h2>
+    <div class="scroll">
+      <table>
+        <caption>Structural differences, from viajante’s current code and LetsFG’s published docs.</caption>
+        <thead>
+          <tr>
+            <th scope="col"> </th>
+            <th scope="col">viajante</th>
+            <th scope="col">LetsFG</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Price</th>
+            <td data-who="viajante">Free. MIT licensed and open source.</td>
+            <td data-who="LetsFG">Connecting the hosted MCP costs nothing. No sign-up form and no card to connect.</td>
+          </tr>
+          <tr>
+            <th scope="row">Sign-in</th>
+            <td data-who="viajante">No account, login, OAuth, or API key.</td>
+            <td data-who="LetsFG">OAuth is required. You approve the connection in a browser. A request without a token is rejected.</td>
+          </tr>
+          <tr>
+            <th scope="row">Where it runs</th>
+            <td data-who="viajante">On your machine. The CLI installs with <code>pip install viajante</code>. The MCP server is local: stdio by default, or an optional HTTP endpoint bound to 127.0.0.1. Searches go from your machine to the sources, not through a viajante server.</td>
+            <td data-who="LetsFG">On their servers. The hosted MCP is <code>https://letsfg.co/mcp</code>. Their backend guide says flight search runs server-side at letsfg.co.</td>
+          </tr>
+          <tr>
+            <th scope="row">Booking</th>
+            <td data-who="viajante">Never books and never takes payment. No affiliate links and no markup. It links you to Google Flights or Booking so you book yourself.</td>
+            <td data-who="LetsFG">Books flights and hotels for you. Before any money is held, they email an Approve button. Nothing is held until you press it.</td>
+          </tr>
+          <tr>
+            <th scope="row">Search cap</th>
+            <td data-who="viajante">No quota from viajante. A source may throttle, and viajante then pauses further requests to that source.</td>
+            <td data-who="LetsFG">Flight searches on the hosted MCP: 10 per 10 minutes, 30 per hour, and 100 per day.</td>
+          </tr>
+          <tr>
+            <th scope="row">Telemetry</th>
+            <td data-who="viajante">No telemetry or analytics in the software.</td>
+            <td data-who="LetsFG">Not compared.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Searches go from your machine directly to Google Flights, Google Hotels, and Booking. Skiplagged is contacted only if you opt in, for hidden-city search or Skiplagged hotels.</p>
+  </section>
+
+  <section>
+    <h2>When LetsFG is the better choice</h2>
+    <div class="note">
+      <p>Choose LetsFG when you want the tool to book. It books flights and hotels after you approve the booking by email. That is the job viajante does not do.</p>
+      <p>viajante searches hotels and returns the stay, the total, and the link. It does not complete the reservation. If the point of the session is a booked hotel, or a ticket bought for you, LetsFG is the better fit.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What viajante can search</h2>
+    <p>These are in the current code. Each one has the limit named here.</p>
+
+    <h3>Hidden-city search</h3>
+    <p>Opt-in, and it uses Skiplagged, not Google. Quotes are USD. The rows stay separate from Google results. viajante still does not book. Confirm the fare on the row’s booking link when the card includes one.</p>
+
+    <h3>Nearby dates, ±N days</h3>
+    <p>On a one-way or round trip, the cheapest owned fare for each day from N days before the date you asked through N days after. A round trip shifts outbound and return together and keeps the trip length. It is off unless you ask. An unpriced day is not “no flights”.</p>
+
+    <h3>Google price level and typical range</h3>
+    <p>A flight search can include Google’s own label for the lowest price against the typical range on that page: low, typical, or high, plus the range. It is Google’s label, not a forecast, and it is absent when the page does not provide it.</p>
+
+    <h3>Explore</h3>
+    <p>Destinations from an origin you name. It needs the optional browser extra and Chromium, and it reads Google’s public Explore page. A destination that comes back without a price is unfinished, not proof that nothing flies there.</p>
+
+    <h3>Emissions filter</h3>
+    <p>One-way public flight search can ask the page for less-emissions flights. Round trips, multi-city trips, and browser detail refuse it, because those paths cannot show that the filter was applied.</p>
+
+    <h3>Departure and arrival time windows</h3>
+    <p>You can bound departure and arrival clocks. One-way public search sends those bounds to the page. Other trip types apply them to the rows that came back. An unknown clock does not count as a match.</p>
+
+    <h3>Bag-aware pricing</h3>
+    <p>On the public flight search, you can ask Google Flights to price one carry-on for the party. A separate ranking allowance can account for a bag in the quote currency. That allowance is not a bag fee. Checked-bag counts are refused, because no path can verify them.</p>
+
+    <h3>Airline alliance filter</h3>
+    <p>The public flight search can include oneworld, SkyTeam, or Star Alliance. Excluding an alliance is refused: the page cannot prove the exclusion.</p>
+
+    <h3>Points and miles</h3>
+    <p>Local award math on offers you supply: cents per point, and transfer paths. It does not search live award seats, and it does not book the award.</p>
+
+    <h3>Clients</h3>
+    <p>Claude, Cursor, and Hermes Agent, as a local MCP server, and as a Python package (<code>pip install viajante</code>). In Hermes Agent:</p>
+    <p><code class="cmd">hermes mcp add viajante --connect-timeout 300 --command npx --args -y @viajante/mcp</code></p>
+    <p>Setup for the other clients is on the <a href="/">viajante homepage</a>.</p>
+  </section>
+
+  <section>
+    <h2>What their docs do not describe</h2>
+    <p>Checked 21 October 2026 in <a href="https://github.com/LetsFG/LetsFG/blob/main/docs/mcp.md">docs/mcp.md</a>, <a href="https://github.com/LetsFG/LetsFG/blob/main/docs/api-search.md">docs/api-search.md</a>, <a href="https://github.com/LetsFG/LetsFG/blob/main/docs/agent-guide.md">docs/agent-guide.md</a>, and <a href="https://github.com/LetsFG/LetsFG/blob/main/docs/cli-reference.md">docs/cli-reference.md</a>. Those pages do not describe hidden-city search, a ±N-day nearby search, an emissions filter, or an arrival-time window.</p>
+    <p>They do describe an outbound date window (<code>date_from</code> through <code>date_to</code>) and departure-time bounds (<code>departure_time_from</code> and <code>departure_time_to</code>). Absence from these docs is not proof the product can never do the thing.</p>
+
+    <h3>Open requests</h3>
+    <p><a href="https://github.com/LetsFG/LetsFG/issues/225">Issue #225</a> is open. It asks about frequent-flyer points, status, and booking with transferable points. On 12 October 2026 the maintainer wrote that frequent-flyer numbers can be saved and attached when they book, and that paying with points is not something they do yet.</p>
+    <p><a href="https://github.com/LetsFG/LetsFG/issues/233">Issue #233</a> is open. It asks for a filter by airline alliance (Star Alliance, SkyTeam, or oneworld). On 19 October 2026 the maintainer wrote that this is already supported in their system and that they will expose it in the MCP tools.</p>
+  </section>
+
+  <section class="faq" id="faq">
+    <h2>Questions</h2>
+
+    <h3>Is viajante free?</h3>
+    <p>Yes. It is free, MIT licensed, and open source. It does not take payment, add a markup, or use affiliate links.</p>
+
+    <h3>Does viajante need an account or an API key?</h3>
+    <p>No. There is no account, login, OAuth, or API key. Install the command-line tool with pip. The MCP server runs on your machine, over stdio or on an optional HTTP endpoint bound to 127.0.0.1.</p>
+
+    <h3>Does viajante book flights?</h3>
+    <p>No. It never books and never takes payment. It links you to Google Flights or Booking so you book yourself.</p>
+
+    <h3>Where do searches go?</h3>
+    <p>From your machine to Google Flights, Google Hotels, and Booking. Skiplagged is contacted only if you opt in, for hidden-city search or Skiplagged hotels. Searches are not sent through a viajante server.</p>
+
+    <h3>Does viajante cap how many searches you can run?</h3>
+    <p>No. viajante does not set a search quota. If a source throttles, viajante pauses further requests to that source.</p>
+
+    <h3>When is LetsFG the better choice?</h3>
+    <p>When you want the tool to book the flight or the hotel. LetsFG books both after you approve the booking by email. viajante returns the rows and the links, and you book yourself.</p>
+
+    <h3>Does viajante work in Claude, Cursor, and Hermes?</h3>
+    <p>Yes. It runs as a local MCP server in Claude, Cursor, and Hermes Agent, and as a Python package. In Hermes Agent the command is <code>hermes mcp add viajante --connect-timeout 300 --command npx --args -y @viajante/mcp</code>.</p>
+  </section>
+
+  <section>
+    <h2>Sources</h2>
+    <ul class="sources">
+      <li><a href="https://github.com/felipebasurto/viajante/blob/main/LICENSE">viajante MIT license</a></li>
+      <li><a href="https://github.com/felipebasurto/viajante/blob/main/README.md">viajante README</a> — install, no API keys, runs on your machine</li>
+      <li><a href="https://github.com/felipebasurto/viajante/blob/main/docs/usage.md">viajante usage guide</a> — flights, nearby dates, price level, explore, filters, alliances, bags</li>
+      <li><a href="https://github.com/LetsFG/LetsFG/blob/main/docs/mcp.md">LetsFG docs/mcp.md</a> — hosted MCP, OAuth, search limits, email approval before booking</li>
+      <li><a href="https://github.com/LetsFG/LetsFG/blob/main/docs/self-hosting.md">LetsFG backend guide</a> — flight search runs server-side at letsfg.co</li>
+      <li><a href="https://github.com/LetsFG/LetsFG/blob/main/docs/api-search.md">LetsFG search docs</a> — date window and departure-time bounds</li>
+      <li><a href="https://github.com/LetsFG/LetsFG/blob/main/docs/agent-guide.md">LetsFG agent guide</a></li>
+      <li><a href="https://github.com/LetsFG/LetsFG/blob/main/docs/cli-reference.md">LetsFG CLI reference</a></li>
+      <li><a href="https://github.com/LetsFG/LetsFG/issues/225">LetsFG issue #225</a> — rewards and points, open</li>
+      <li><a href="https://github.com/LetsFG/LetsFG/issues/233">LetsFG issue #233</a> — alliance filter, open</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="wrap">
+  <nav class="foot" aria-label="Project links">
+    <a href="https://github.com/felipebasurto/viajante">GitHub</a>
+    <a href="https://pypi.org/project/viajante/">PyPI</a>
+    <a href="https://www.npmjs.com/package/@viajante/mcp">npm</a>
+    <a href="/vs/letsfg" aria-current="page">Comparison</a>
+    <a href="https://felipebasurto.com">Made by Felipe Basurto <svg role="img" aria-label="Spain" width="18" height="12" viewBox="0 0 3 2" style="margin-left:6px;border-radius:2px"><rect width="3" height="2" fill="#aa151b"/><rect y=".5" width="3" height="1" fill="#f1bf00"/></svg></a>
+  </nav>
+</footer>
+
+</body>
+</html>

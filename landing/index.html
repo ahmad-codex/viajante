@@ -42,7 +42,6 @@
   --t-muse: #0B3D91;
   --p-hermes: #EFE6D8;
   --t-hermes: #5B4524;
-  --p-claude-solid: #B85C3A;
   --p-instinct: #D9F3E4;
   --t-instinct: #14583A;
 }
@@ -167,68 +166,6 @@ h1 {
 .agent.muse { --p: var(--p-muse); --t: var(--t-muse); }
 .agent.instinct { --p: var(--p-instinct); --t: var(--t-instinct); }
 
-.picker {
-  display: grid;
-  gap: 8px;
-  justify-items: center;
-  width: min(340px, 100%);
-  margin: 0 auto;
-}
-.agent.primary {
-  --p: var(--p-claude-solid);
-  --t: #FFFFFF;
-  justify-content: center;
-  min-height: 60px;
-  font-size: 18px;
-  font-weight: 600;
-}
-.more { width: 100%; }
-.more summary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  color: var(--muted);
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  list-style: none;
-}
-.more summary::-webkit-details-marker { display: none; }
-.more summary::after {
-  content: "";
-  width: 14px;
-  height: 14px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%236E6E73' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
-  transition: transform 160ms var(--ease-out);
-}
-.more[open] summary::after { transform: rotate(180deg); }
-.more summary:hover { color: var(--ink); }
-.more summary:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 8px;
-}
-.more .agents { width: 100%; margin-top: 4px; }
-.next {
-  width: 100%;
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  text-align: left;
-  font-size: 15px;
-}
-.next-title { margin: 0; font-weight: 600; }
-.next-steps { margin: 8px 0 0; padding-left: 20px; color: var(--muted); }
-.next .manual {
-  max-height: 160px;
-  margin: 12px 0 0;
-  padding: 10px 12px;
-  overflow: auto;
-  font-size: 13px;
-}
-
 .ico {
   flex: none;
   width: 22px;
@@ -242,7 +179,7 @@ h1 {
 
 .manual {
   max-width: 560px;
-  margin: 12px auto 0;
+  margin: 28px auto 0;
   padding: 16px 18px;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -519,8 +456,15 @@ h1 {
   .hero > * { animation: rise 640ms var(--ease-out) backwards; }
   .hero > :nth-child(2) { animation-delay: 70ms; }
   .hero > :nth-child(3) { animation-delay: 140ms; }
-  .hero > :nth-child(4) { animation-delay: 210ms; }
   .hero > :nth-child(5) { animation-delay: 300ms; }
+  .hero > [data-picker] { animation: none; }
+  .hero .agent { animation: rise 520ms var(--ease-out) backwards; }
+  .hero .agent:nth-child(1) { animation-delay: 220ms; }
+  .hero .agent:nth-child(2) { animation-delay: 270ms; }
+  .hero .agent:nth-child(3) { animation-delay: 320ms; }
+  .hero .agent:nth-child(4) { animation-delay: 370ms; }
+  .hero .agent:nth-child(5) { animation-delay: 420ms; }
+  .hero .agent:nth-child(6) { animation-delay: 470ms; }
 }
 
 /* Scroll reveal: only hidden when JS is running (html.js), so no-JS readers see everything. */
@@ -576,7 +520,7 @@ h1 {
     </div>
 
     <h1>Search flights &amp; hotels with AI.</h1>
-    <p class="lede">Copy one message. Paste it into your assistant.</p>
+    <p class="lede">Pick your assistant.</p>
 
     <div data-picker>
       <noscript><p class="manual">Run <code>npx -y @viajante/mcp</code> as an MCP server, or without Node <code>uvx --from viajante[mcp] viajante-mcp</code>. Needs uv and Python 3.10 or later. <a href="https://github.com/felipebasurto/viajante#readme">Setup guide</a></p></noscript>
@@ -679,6 +623,7 @@ h1 {
     <a href="https://github.com/felipebasurto/viajante">GitHub</a>
     <a href="https://pypi.org/project/viajante/">PyPI</a>
     <a href="https://www.npmjs.com/package/@viajante/mcp">npm</a>
+    <a href="/vs/letsfg">Comparison</a>
     <a href="https://felipebasurto.com">Made by Felipe Basurto <svg role="img" aria-label="Spain" width="18" height="12" viewBox="0 0 3 2" style="margin-left:6px;border-radius:2px"><rect width="3" height="2" fill="#aa151b"/><rect y=".5" width="3" height="1" fill="#f1bf00"/></svg></a>
   </nav>
 </footer>
@@ -686,42 +631,33 @@ h1 {
 <p class="sr" id="live" aria-live="polite"></p>
 
 <template id="picker">
-  <div class="picker">
-    <button class="agent claude primary" type="button" data-agent data-name="Claude">
+  <div class="agents">
+    <button class="agent claude" type="button" data-agent data-name="Claude">
       <span class="ico"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z"/></svg></span>
       <span class="agent-label">Install in Claude</span>
     </button>
-    <details class="more">
-      <summary>Using a different AI?</summary>
-      <div class="agents">
-        <button class="agent chatgpt" type="button" data-agent data-name="ChatGPT">
-          <span class="ico"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span>
-          <span class="agent-label">Install in ChatGPT</span>
-        </button>
-        <button class="agent grok" type="button" data-agent data-name="Grok Bot">
-          <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#111111"/><ellipse cx="13.3" cy="7" rx="0.7" ry="1.6" fill="#FFFFFF" transform="rotate(-25 13.3 7)"/><ellipse cx="18.9" cy="6.6" rx="0.7" ry="1.6" fill="#FFFFFF" transform="rotate(-25 18.9 6.6)"/></svg></span>
-          <span class="agent-label">Install in Grok Bot</span>
-        </button>
-        <button class="agent muse" type="button" data-agent data-name="Muse">
-          <span class="ico"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M2.6 10.8L7 3.8L5.6 19.6L12.6 5L11.4 19.6L18.6 8.3L21.8 13.2" stroke="url(#muse-g)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="agent-label">Install in Muse</span>
-        </button>
-        <button class="agent hermes" type="button" data-agent data-name="Hermes Agent">
-          <span class="ico"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M12 3v18M7 7.5l5 3 5-3M7 12.5l5 3 5-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <span class="agent-label">Install in Hermes Agent</span>
-        </button>
-        <button class="agent instinct" type="button" data-agent data-name="Instinct">
-          <span class="ico"><svg viewBox="0 0 24 24" fill="#2B2B2B" aria-hidden="true" focusable="false"><rect x="7" y="2" width="10" height="1.6"/><rect x="10.4" y="3.6" width="3.2" height="16.8"/><rect x="7" y="20.4" width="10" height="1.6"/></svg></span>
-          <span class="agent-label">Install in Instinct</span>
-        </button>
-      </div>
-    </details>
-    <div class="next" role="status" hidden>
-      <p class="next-title"></p>
-      <ol class="next-steps"></ol>
-      <p class="manual" hidden></p>
-    </div>
+    <button class="agent chatgpt" type="button" data-agent data-name="ChatGPT">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span>
+      <span class="agent-label">Install in ChatGPT</span>
+    </button>
+    <button class="agent grok" type="button" data-agent data-name="Grok Bot">
+      <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="11" fill="#111111"/><ellipse cx="13.3" cy="7" rx="0.7" ry="1.6" fill="#FFFFFF" transform="rotate(-25 13.3 7)"/><ellipse cx="18.9" cy="6.6" rx="0.7" ry="1.6" fill="#FFFFFF" transform="rotate(-25 18.9 6.6)"/></svg></span>
+      <span class="agent-label">Install in Grok Bot</span>
+    </button>
+    <button class="agent muse" type="button" data-agent data-name="Muse">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M2.6 10.8L7 3.8L5.6 19.6L12.6 5L11.4 19.6L18.6 8.3L21.8 13.2" stroke="url(#muse-g)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="agent-label">Install in Muse</span>
+    </button>
+    <button class="agent hermes" type="button" data-agent data-name="Hermes Agent">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M12 3v18M7 7.5l5 3 5-3M7 12.5l5 3 5-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <span class="agent-label">Install in Hermes Agent</span>
+    </button>
+    <button class="agent instinct" type="button" data-agent data-name="Instinct">
+      <span class="ico"><svg viewBox="0 0 24 24" fill="#2B2B2B" aria-hidden="true" focusable="false"><rect x="7" y="2" width="10" height="1.6"/><rect x="10.4" y="3.6" width="3.2" height="16.8"/><rect x="7" y="20.4" width="10" height="1.6"/></svg></span>
+      <span class="agent-label">Install in Instinct</span>
+    </button>
   </div>
+  <p class="manual" hidden></p>
 </template>
 
 <script>
@@ -755,7 +691,6 @@ h1 {
   }
   var RESET_MS = 1600;
   var live = document.getElementById('live');
-  var OPEN = { Claude: 'https://claude.ai/new', ChatGPT: 'https://chatgpt.com/' };
   var timers = new WeakMap();
   var tpl = document.getElementById('picker');
 
@@ -792,35 +727,17 @@ h1 {
     }, RESET_MS));
   }
 
-  function step(parts) {
-    var li = document.createElement('li');
-    li.append.apply(li, parts);
-    return li;
-  }
-
-  function showNext(button, ok) {
-    var name = button.getAttribute('data-name');
-    var next = button.closest('.picker').querySelector('.next');
-    var open = [OPEN[name] ? Object.assign(document.createElement('a'), {
-      href: OPEN[name], target: '_blank', rel: 'noopener', textContent: name
-    }) : name];
-    next.querySelector('.next-title').textContent = ok
-      ? 'Message copied.' : 'Copy is blocked here. Select the message and copy it.';
-    next.querySelector('.next-steps').replaceChildren(
-      step(['Open '].concat(open)),
-      step(['Paste it into a chat and send it.'])
-    );
-    var manual = next.querySelector('.manual');
+  function showFallback(button) {
+    var manual = button.closest('[data-picker]').querySelector('.manual');
     manual.textContent = messageFor(button);
-    manual.hidden = ok;
-    next.hidden = false;
-    next.scrollIntoView({ block: 'nearest' });
+    manual.hidden = false;
+    manual.scrollIntoView({ block: 'center' });
+    live.textContent = 'Copy is blocked in this view. The setup message is shown here. Select it and copy it.';
   }
 
   function finish(button, ok) {
     if (ok) showCopied(button);
-    else live.textContent = 'Copy is blocked in this view. The setup message is shown here. Select it and copy it.';
-    showNext(button, ok);
+    else showFallback(button);
   }
 
   document.querySelectorAll('[data-agent]').forEach(function (button) {
